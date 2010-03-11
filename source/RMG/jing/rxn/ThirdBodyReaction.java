@@ -199,6 +199,23 @@ public class ThirdBodyReaction extends Reaction {
       tbr.weightMap = p_thirdBodyList;
       tbr.generateReverseReaction(); 
       
+	  // Make sure that everything in the weightMap has been declared 
+	  for(Iterator iter = tbr.weightMap.keySet().iterator(); iter.hasNext();) {
+		  Object key = iter.next();
+		  double tbe = ((Double)tbr.weightMap.get(key)).doubleValue();
+		  String name = key.toString();
+		  if (name.equals("AR")) name = "Ar";  // this REALLY shouldn't be here, but it's everywhere else, so has to be
+		  Species spe = SpeciesDictionary.getInstance().getSpeciesFromName(name);
+		  if (spe==null){  // it's not a reactive species 
+			  for(Iterator iter2=ReactionModelGenerator.initialStatusList.iterator();iter2.hasNext(); ){
+				  InitialStatus status = ((InitialStatus)iter2.next());
+				  if (status.getInertGas(name) == null)  // it's not yet an inert gas
+					  status.putInertGas(name,0.0);
+			  }
+		  }
+      }
+	  
+	  
       return tbr;
       
       
