@@ -816,6 +816,10 @@ public class ReactionModelGenerator {
 
 			//
 			if (temp.startsWith("AUTOPRUNE")){//for the AUTOPRUNE case, read in additional lines for termTol and edgeTol
+			    if(reactionModelEnlarger instanceof RateBasedPDepRME){
+				System.out.println("Use of pruning with pressure-dependence is not supported. Turn off pruning and/or pressure-dependence options in condition file.");
+				System.exit(0);
+			    }
 			    line = ChemParser.readMeaningfulLine(reader);
 			    if (line.startsWith("TerminationTolerance:")) {
 				    st = new StringTokenizer(line);
@@ -1342,7 +1346,7 @@ public class ReactionModelGenerator {
             ReactionTime begin = (ReactionTime)beginList.get(i);
             ReactionTime end = (ReactionTime)endList.get(i);
             endList.set(i,rs.solveReactionSystem(begin, end, true, true, true, iterationNumber-1));
-            Chemkin.writeChemkinInputFile(rs);//11/9/07 gmagoon:****temporarily commenting out: there is a NullPointerException in Reaction.toChemkinString when called from writeChemkinPdepReactions; occurs with pre-modified version of RMG as well; //11/12/07 gmagoon: restored; ****this appears to be source of non-Pdep bug
+            Chemkin.writeChemkinInputFile(rs);
             boolean terminated = rs.isReactionTerminated();
             terminatedList.add(terminated);
             if(!terminated)
@@ -1470,11 +1474,11 @@ public class ReactionModelGenerator {
 				solverMin = solverMin + (System.currentTimeMillis()-startTime)/1000/60;
 				
 				startTime = System.currentTimeMillis();
-				//10/24/07 gmagoon: changed to use reactionSystemList
 				for (Integer i = 0; i<reactionSystemList.size();i++) {
+					// we over-write the chemkin file each time, so only the LAST reaction system is saved
+					// i.e. if you are using RATE for pdep, only the LAST pressure is used.
 					ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-					Chemkin.writeChemkinInputFile(rs);//10/25/07 gmagoon: ***I don't know if this will still work with multiple reaction systems: may want to modify to only write one chemkin input file for all reaction systems //11/9/07 gmagoon:****temporarily commenting out; cf. previous comment; //11/12/07 gmagoon: restored; ****this appears to be source of non-Pdep bug 
-					//Chemkin.writeChemkinInputFile(reactionSystem);
+					Chemkin.writeChemkinInputFile(rs);
 				}
 				//9/1/09 gmagoon: if we are using QM, output a file with the CHEMKIN name, the RMG name, the (modified) InChI, and the (modified) InChIKey
 				if (ChemGraph.useQM){
@@ -1766,10 +1770,11 @@ public class ReactionModelGenerator {
 			}
 			
         }
-        //10/24/07 gmagoon: updated to use reactionSystemList (***see previous comment regarding having one Chemkin input file)
+
         for (Integer i = 0; i<reactionSystemList.size();i++) {
+			// chemkin files are overwritten each loop - only the last gets saved
 			ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-			Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus());//11/9/07 gmagoon: temporarily commenting out; see previous comment; this line may not cause a problem because it is different instance of writeChemkinInputFile, but I am commenting out just in case//11/12/07 gmagoon: restored; ****this appears to be source of non-Pdep bug 
+			Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus()); 
         }
 		
         //9/1/09 gmagoon: if we are using QM, output a file with the CHEMKIN name, the RMG name, the (modified) InChI, and the (modified) InChIKey
@@ -1848,7 +1853,7 @@ public class ReactionModelGenerator {
         //Write core species to RMG_Solvation_Properties.txt
 		CoreEdgeReactionModel cerm = (CoreEdgeReactionModel)rm;
 		StringBuilder result = new StringBuilder();
-		result.append("ChemkinName\tChemicalFormula\tMolecularWeight\tRadius\tDiffusivity\tAbrahamS\tAbrahamB\tAbrahamE\tAbrahamL\tAbrahamA\tChemkinName\n\n");
+		result.append("ChemkinName\tChemicalFormula\tMolecularWeight\tRadius\tDiffusivity\tAbrahamS\tAbrahamB\tAbrahamE\tAbrahamL\tAbrahamA\tAbrahamV\tChemkinName\n\n");
 		Iterator iter = cerm.getSpecies();
 		while (iter.hasNext()){
 			Species spe = (Species)iter.next();
@@ -2854,10 +2859,14 @@ public class ReactionModelGenerator {
 													 numFamePress,numChebyTemps,numChebyPress,numPlog));
 					
 					PDepReaction currentPDepReverseRxn = currentPDepRxn.getReverseReaction();
-					bw.write(currentPDepReverseRxn.toString());
-					bw.newLine();
-					bw.write(writeRatesAndParameters(currentPDepReverseRxn,numFameTemps,
-													 numFamePress,numChebyTemps,numChebyPress,numPlog));
+					// Not all net PDepReactions are reversible, so we must test for this
+					if (currentPDepReverseRxn != null) {
+						bw.write(currentPDepReverseRxn.toString());
+						bw.newLine();
+						bw.write(writeRatesAndParameters(currentPDepReverseRxn,numFameTemps,
+														 numFamePress,numChebyTemps,numChebyPress,numPlog));
+					}
+					
 				}
 				
 				// Write pathReactionList
