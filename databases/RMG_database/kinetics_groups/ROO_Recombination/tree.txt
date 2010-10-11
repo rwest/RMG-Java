@@ -2,9 +2,9 @@
 // ROO recombination reaction
 
 L1: ROO_rad_1
-	L2: ROO_rad_1/ch
-	L2: ROO_rad_1/ch2
+//	L2: ROO_rad_1/ch
+//	L2: ROO_rad_1/ch2
 	
 L1: ROO_rad_2
-	L2: ROO_rad_2/ch
-	L2: ROO_rad_2/ch2
+//	L2: ROO_rad_2/ch
+//	L2: ROO_rad_2/ch2
