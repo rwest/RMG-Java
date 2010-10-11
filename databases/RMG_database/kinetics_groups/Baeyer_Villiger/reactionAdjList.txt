@@ -1,0 +1,22 @@
+//////////////////////////////////////////////////////
+//                                                  //
+// the reaction adjList defining the reaction type  //
+//                                                  //
+// Amrit Jalan, October 11, 2010                         //
+//                                                  //
+//////////////////////////////////////////////////////
+
+
+// Baeyer-Villiger Reaction: RCOOOH + R'C(O)H-> RC(O)OH + R'C(O)OH
+
+RC(O)OOH + RC(O)H -> RC(O)OH + RC(O)OH
+
+reverse: none
+
+Actions 1
+(1) BREAK_BOND		{*1,S,*2}
+(2) BREAK_BOND		{*3,S,*4}
+(3) FORM_BOND		{*1,S,*4}
+(4) FORM_BOND		{*3,S,*2}
+
+

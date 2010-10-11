@@ -1,0 +1,6 @@
+//Amrit Jalan, October 11, 2010
+// Baeyer-Villiger reaction
+
+L1: RC(O)OOH
+	
+L1: RC(O)H
