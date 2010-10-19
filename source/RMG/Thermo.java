@@ -62,11 +62,10 @@ public static void main(String[] args) {
         	  // The options for the "Solvation" field are "on" or "off" (as of 18May2009), otherwise do nothing and display a message to the user
         	  // Note: I use "Species.useInChI" because the "Species.useSolvation" updates were not yet committed.
         	  if (line.equals("on")) {
-        		  Species.useInChI = true;
-                  Species.useSolvation = true;
+        		  Species.useSolvation = true;
         		  thermo_output += "Solution-phase Thermochemistry!\n\n";
         	  } else if (line.equals("off")) {
-        		  Species.useInChI = false;
+        		  Species.useSolvation = false;
         		  thermo_output += "Gas-phase Thermochemistry.\n\n";
         	  } else {
         		  System.out.println("Error in reading thermo_input.txt file:\nThe field 'Solvation' has the options 'on' or 'off'.");
@@ -103,30 +102,22 @@ public static void main(String[] args) {
         	  System.out.println("Error in reading thermo_input.txt file:\nThe first line must read 'Solvation: on/off'.");
 
           in.close();
-          //thermo_output += "Name" + "\t" + "E"+ "\t" + "S"+ "\t" + "A"+ "\t" + "B"+ "\t" + "L"+ "\t" + "V" + "\t" + "UNIFAC_radius" + "\n";
-          //thermo_output += "Order of entries: Name (read from thermo_input.txt) H(T) S(T) G(T) Radius\n" +
-          //	"Units of H & G: kcal/mol\nUnits of S cal/mol/K\n" + "Units of Radius: Meter\n\n";
+          
+          thermo_output += "Output: Name" + "\t" + "deltaGsolv [=] kcal/mol" + "\n" + "\n";
           
           Iterator iter = speciesSet.iterator();       
           while (iter.hasNext()){
         	  Species spe = (Species)iter.next();
-        	  //thermo_output += spe.getName() + "\t" + spe.calculateH(systemTemp) + "\t" +
-              //        spe.calculateS(systemTemp) + "\t" +
-              //        spe.calculateG(systemTemp) + "\t" + spe.getChemGraph().getRadius() + "\n";
-             //thermo_output += spe.getName() + "\t" + spe.getChemGraph().calculateH(systemTemp) + "\t" +
-             //         spe.getChemGraph().calculateS(systemTemp) + "\t" +
-             //         spe.getChemGraph().calculateG(systemTemp) + "\t" + spe.getChemGraph().getRadius() + "\n";
-             // thermo_output += spe.getName() + "\t" + spe.getChemGraph().getAbramData().E + "\t" + spe.getChemGraph().getAbramData().S + "\t" +
-             //         spe.getChemGraph().getAbramData().A+ "\t" + spe.getChemGraph().getAbramData().B + "\t"
-             //         + spe.getChemGraph().getAbramData().L+ "\t" + spe.getChemGraph().getAbramData().V + "\t" + spe.getChemGraph().getRadius() + "\n";
+ 
             double A = spe.getChemGraph().getAbramData().A;
             double B = spe.getChemGraph().getAbramData().B;
             double E = spe.getChemGraph().getAbramData().E;
             double S = spe.getChemGraph().getAbramData().S;
             double L = spe.getChemGraph().getAbramData().L;
 
-            double logK = -0.007 +(-0.595*E)+(2.461*S)+(2.085*A)+(0.418*B)+(0.738*L);
-            thermo_output += spe.getName() + "\t" + logK + "\n";
+            double logK = -1.271 +(0.822*E)+(2.743*S)+(3.904*A)+(4.814*B)+(-0.213*L);
+            double deltaG = -2.303*8.314*298*logK/4180;
+            thermo_output += spe.getName() + "\t" + deltaG + "\n";
 
           }
           
@@ -139,60 +130,6 @@ public static void main(String[] args) {
         	  System.out.println("Error in writing thermo_output.txt file.");
         	  System.exit(0);
           }
-
-//		 System.out.println("The number of resonance isomers is " + spe.getResonanceIsomersHashSet().size());
-//		 System.out.println("The NASA data is \n"+ spe.getNasaThermoData());
-//		 System.out.println("ThermoData is \n" +  spe.getChemGraph().getThermoData().toString());
- //       System.out.println("AbramData is \n" +  spe.getChemGraph().getAbramData().toString());
-//         System.out.println("UnifacData is \n" +  spe.getChemGraph().getUnifacData().toString());
-//        //int K = chemgraph.getKekule();
-//        int symm = chemgraph.getSymmetryNumber();
-//        //System.out.println("number of Kekule structures = "+K);
-//        System.out.println(" symmetry number = "+symm);
-
-//         System.out.println(g);
-//         ChemGraph chemgraph = ChemGraph.make(g);
-//		 Species spe = Species.make("molecule",chemgraph);
-//		 System.out.println("The number of resonance isomers is " + spe.getResonanceIsomersHashSet().size());
-//		 System.out.println("The NASA data is \n"+ spe.getNasaThermoData());
-//		 System.out.println("ThermoData is \n" +  spe.getChemGraph().getThermoData().toString());
-//         System.out.println("Solvation ThermoData is \n" +  spe.getChemGraph().getSolvationData().toString());
-        // System.out.println("AbramData is \n" +  spe.getChemGraph().getAbramData().toString());
-//         System.out.println("UnifacData is \n" +  spe.getChemGraph().getUnifacData().toString());
-//        //int K = chemgraph.getKekule();
-//        int symm = chemgraph.getSymmetryNumber();
-//        //System.out.println("number of Kekule structures = "+K);
-//        System.out.println(" symmetry number = "+symm);
-//
-//         Temperature T = new Temperature(298.0,"K");
-//
-//         String chemicalFormula = chemgraph.getChemicalFormula();
-//
-//         System.out.println(chemicalFormula + "  H=" + chemgraph.calculateH(T));
-          
-//         Temperature T = new Temperature(298.0,"K");
-//
-//         String chemicalFormula = chemgraph.getChemicalFormula();
-//
-//         System.out.println(chemicalFormula + "  H=" + chemgraph.calculateH(T));
-
-
-    //      Species species = Species.make(chemicalFormula, chemgraph);
-          // this is equal to  System.out.println(species.toString());
-    //      System.out.println(species.toStringWithoutH());
-  //        species.generateResonanceIsomers();
-  //        Iterator rs = species.getResonanceIsomers();
-  //        while (rs.hasNext()){
-  //          ChemGraph cg = (ChemGraph)rs.next();
-  //          Species s = cg.getSpecies();
-  //          String string = s.toStringWithoutH();
-  //          System.out.print(string);
-  //        }
-
-   //       Species species = Species.make(chemicalFormula, chemgraph);
-   //       Iterator iterator = species.getResonanceIsomers();
-   //       System.out.println(iterator);
-
  }
  catch (FileNotFoundException e) {
    System.err.println("File was not found!\n");
@@ -200,21 +137,9 @@ public static void main(String[] args) {
  catch(IOException e){
    System.err.println("Something wrong with ChemParser.readChemGraph");
  }
-// catch(ForbiddenStructureException e){
-//   System.err.println("Something wrong with ChemGraph.make");
-// }
-
 
 System.out.println("Done!\n");
 
 };
-
-
-
-
-
-
-
-
 
 }
