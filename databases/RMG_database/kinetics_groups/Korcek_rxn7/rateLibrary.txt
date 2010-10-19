@@ -1,0 +1,7 @@
+//Rate rule for acid formation from hydroperoxy ketones by Amrit Jalan, October 18, 2010
+
+// Define key word for format of the rate: either Arrhenius or Arrhenius_EP
+Arrhenius_EP
+
+//No.		Y_rad_1					Temp.		A			n		a		E0		DA		Dn		Da		DE0		Rank	Comments
+1.			RC(O)CH2CH(OOH)R'		300-1500	2E12		0		0		29.7	0		0		0		0		0		Obtained from Jensen et al. (J. Am. Chem. Soc., Vol. 103, No. 7, 1981

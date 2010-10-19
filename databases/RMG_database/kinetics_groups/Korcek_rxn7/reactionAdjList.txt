@@ -1,0 +1,25 @@
+//////////////////////////////////////////////////////
+//                                                  //
+// the reaction adjList defining the reaction type  //
+//                                                  //
+// Amrit Jalan, October 18, 2010                    //
+//                                                  //
+//////////////////////////////////////////////////////
+
+
+// Korcek Reaction 7: RC(O)CH2CH(OOH)R' -> RC(O)OH + R'C(O)CH3
+
+RC(O)CH2CH(OOH)R' -> RC(O)OH + R'C(O)CH3
+
+reverse: none
+
+Actions 1
+(1) BREAK_BOND		{*3,S,*4}
+(2) BREAK_BOND		{*1,S,*5}
+(3) BREAK_BOND		{*2,S,*6}
+(4) CHANGE_BOND		{*2,1,*3}
+(5) FORM_BOND		{*1,S,*4}
+(6) FORM_BOND		{*5,S,*6}
+
+
+
