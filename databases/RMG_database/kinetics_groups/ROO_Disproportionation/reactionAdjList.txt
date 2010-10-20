@@ -1,0 +1,23 @@
+//////////////////////////////////////////////////////
+//                                                  //
+// the reaction adjList defining the reaction type  //
+//                                                  //
+// Amrit Jalan, October 19, 2010                         //
+//                                                  //
+//////////////////////////////////////////////////////
+
+
+// ROO Recombination: 2ROO -> RC=O + RCOH + O2
+
+ROO_rad_1 + ROO_rad_2 -> RC=O + RCH(OH) + O2
+
+reverse: none
+
+Actions 1
+(1) BREAK_BOND		{*2,S,*3}
+(2) BREAK_BOND		{*6,S,*7}
+(3) FORM_BOND		{*3,S,*7}
+(4) GAIN_RADICAL	{*6,1}
+(5) GAIN_RADICAL	{*2,1}
+
+
