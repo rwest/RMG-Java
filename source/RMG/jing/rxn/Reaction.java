@@ -56,7 +56,7 @@ Immutable objects.
 public class Reaction {
 
   protected static double TRIMOLECULAR_RATE_UPPER = 1.0E100;
-  protected static double BIMOLECULAR_RATE_UPPER = 1.0E100;		//## attribute BIMOLECULAR_RATE_UPPER
+  protected static double BIMOLECULAR_RATE_UPPER = 1.0E200;		//## attribute BIMOLECULAR_RATE_UPPER
 
   protected static double UNIMOLECULAR_RATE_UPPER = 1.0E100;		//## attribute UNIMOLECULAR_RATE_UPPER
 
