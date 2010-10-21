@@ -25,23 +25,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+
 import java.util.*;
 import java.io.*;
 
 import jing.chem.*;
 import jing.chemParser.*;
 import jing.param.*;
-import jing.chemUtil.*;
+    import jing.chemUtil.*;
 //import bondGroups.*;
 import jing.rxn.*;
 import jing.rxnSys.*;
 import jing.mathTool.*;
-
-
-// Amrit Jalan
-// June 18, 2009
-// Returns the Abraham Parameters for the list of chemgraphs in Abraham_input.txt for the solvent parameters defined at the head of Abraham_input.txt
-
 
 
 public class Abraham {
@@ -51,39 +46,43 @@ public static void main(String[] args) {
 //  initializeSystemProperties();
 	RMG.globalInitializeSystemProperties();
 	LinkedHashSet speciesSet = new LinkedHashSet();
-    String abraham_output = "";
-    double c=0;
-    double a=0;
-    double b=0;
-    double l=0;
-    double s=0;
-    double es=0;
-    String solvent="";
+    String thermo_output = "";
+    Temperature systemTemp = new Temperature();
 
  try {
-          FileReader in = new FileReader("Abraham_input.txt");
+          FileReader in = new FileReader("thermo_input.txt");
           BufferedReader data = new BufferedReader(in);
 
-          // Read the first line of Abraham_input.txt
+          // Read the first line of thermo_input.txt
           String line = ChemParser.readMeaningfulLine(data, true);
           StringTokenizer st = new StringTokenizer(line);
+          // The first line should start with "Solvation", otherwise do nothing and display a message to the user
+          if (st.nextToken().startsWith("Solvation")) {
+        	  line = st.nextToken().toLowerCase();
+        	  // The options for the "Solvation" field are "on" or "off" (as of 18May2009), otherwise do nothing and display a message to the user
+        	  // Note: I use "Species.useInChI" because the "Species.useSolvation" updates were not yet committed.
+        	  if (line.equals("on")) {
+        		  Species.useSolvation = true;
+        		  thermo_output += "Solution-phase Thermochemistry!\n\n";
+        	  } else if (line.equals("off")) {
+        		  Species.useSolvation = false;
+        		  thermo_output += "Gas-phase Thermochemistry.\n\n";
+        	  } else {
+        		  System.out.println("Error in reading thermo_input.txt file:\nThe field 'Solvation' has the options 'on' or 'off'.");
+        		  return;
+        	  }
+              // Read in the temperature of the system
+              line = ChemParser.readMeaningfulLine(data, true);
+              st = new StringTokenizer(line);
+              if (!st.nextToken().startsWith("Temperature")) {
+                  System.out.println("Error in reading thermo_input.txt file:\n The field 'Temperature' should follow the 'Solvation' field.");
+              }
+              double tempValue = Double.parseDouble(st.nextToken());
+              String tempUnits = st.nextToken();
+              systemTemp = new Temperature(tempValue,tempUnits);
+              thermo_output += "System Temperature = " + systemTemp.getK() + "K" + "\n";
 
-          // The first line should start with "SolventParameters", otherwise do nothing and display a message to the user
-          if (st.nextToken().startsWith("SolventParameters")){
-
-              c = Double.parseDouble(st.nextToken());
-              es = Double.parseDouble(st.nextToken());
-              s = Double.parseDouble(st.nextToken());
-              a = Double.parseDouble(st.nextToken());
-              b = Double.parseDouble(st.nextToken());
-              l = Double.parseDouble(st.nextToken());
-              solvent=st.nextToken();
-         } else
-        	  System.out.println("Error in reading Abraham_input.txt file:\nThe first line must read 'SolventParameters:'.");
-
-
-
-          // Read in the ChemGraphs and compute their thermo, while there are ChemGraphs to read in
+        	  // Read in the ChemGraphs and compute their thermo, while there are ChemGraphs to read in
         	  line = ChemParser.readMeaningfulLine(data, true);
         	  while (line != null) {
         		  String speciesName = line;
@@ -99,46 +98,38 @@ public static void main(String[] args) {
         		  speciesSet.add(species);
         		  line = ChemParser.readMeaningfulLine(data, true);
         	  }
+          } else
+        	  System.out.println("Error in reading thermo_input.txt file:\nThe first line must read 'Solvation: on/off'.");
 
           in.close();
 
-          abraham_output += "Solvent:" + "\t" + solvent + "\n\n";
-          //abraham_output += "Name" + "\t" +"S"+"\t"+"B"+"\t"+"E"+"\t"+"L"+"\t"+"A" + "\n";
+          thermo_output += "Output: Name" + "\t" + "deltaGsolv [=] kcal/mol" + "\n" + "\n";
 
-
-         Iterator iter = speciesSet.iterator();
+          Iterator iter = speciesSet.iterator();
           while (iter.hasNext()){
         	  Species spe = (Species)iter.next();
-              ChemGraph cg= spe.getChemGraph();
 
-                    // Generation of Abraham Solute Parameters
-       AbramData result_Abraham= new AbramData();
-       result_Abraham= cg.getAbramData();
+            double A = spe.getChemGraph().getAbramData().A;
+            double B = spe.getChemGraph().getAbramData().B;
+            double E = spe.getChemGraph().getAbramData().E;
+            double S = spe.getChemGraph().getAbramData().S;
+            double L = spe.getChemGraph().getAbramData().L;
 
-       // Solute descriptors from the Abraham Model
-       double S=result_Abraham.S;
-       double B=result_Abraham.B;
-       double E=result_Abraham.E;
-       double L=result_Abraham.L;
-       double A=result_Abraham.A;
-
-       double logK=c + s*S + b*B + es*E + l*L + a*A;    // Implementation of Abraham Model
-
-        //abraham_output += spe.getName() + "\t" +S+"\t"+B+"\t"+E+"\t"+L+"\t"+A + "\n";
-        abraham_output += spe.getName() + "\t" + logK + "\n";
+            double logK = -1.271 +(0.822*E)+(2.743*S)+(3.904*A)+(4.814*B)+(-0.213*L);
+            double deltaG = -2.303*8.314*298*logK/4180;
+            thermo_output += spe.getName() + "\t" + deltaG + "\n";
 
           }
 
           try {
-        	  File abrahamOutput = new File("Abraham_output.txt");
-        	  FileWriter fw = new FileWriter(abrahamOutput);
-        	  fw.write(abraham_output);
+        	  File thermoOutput = new File("thermo_output.txt");
+        	  FileWriter fw = new FileWriter(thermoOutput);
+        	  fw.write(thermo_output);
         	  fw.close();
           } catch (IOException e) {
-        	  System.out.println("Error in writing Abraham_output.txt file.");
+        	  System.out.println("Error in writing thermo_output.txt file.");
         	  System.exit(0);
           }
-
  }
  catch (FileNotFoundException e) {
    System.err.println("File was not found!\n");

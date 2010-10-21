@@ -30,7 +30,7 @@
 13     	off     2+2_cycloaddition_CCO
 14     	off     Diels_alder_addition
 15     	on      intra_H_migration
-16     	on     HO2_Elimination_from_PeroxyRadical
+16     	on      HO2_Elimination_from_PeroxyRadical
 17     	off     Birad_recombination
 18     	off     Oa_R_Recombination
 19     	off     R_Addition_COm
@@ -38,6 +38,7 @@
 21     	off     Intra_R_Add_Endocyclic
 22     	off     1,2-Birad_to_alkene
 23     	off     Intra_Disproportionation
-25	on	ROO_Recombination
-25	on	Baeyer_Villiger
-26 	on	Korcek_rxn7
+25		on		ROO_Termination
+25		off		Baeyer_Villiger
+26 		off		Korcek_rxn7
+27 		on		ROO_Propagation
