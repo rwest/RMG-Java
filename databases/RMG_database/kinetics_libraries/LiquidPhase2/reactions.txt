@@ -5,16 +5,28 @@ A: mol/cm3/s
 E: kcal/mol
 
 Reactions:
-//Propagation rate constants reported by Korcek using stirred flow reactor measurements (for abstraction of secondary hydrogens by secondary hydroperoxides) 
-oct-OOJ2 + oct = C8H17J2 + oct-OOH2 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ2 + oct = C8H17J3 + oct-OOH2 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ2 + oct = C8H17J4 + oct-OOH2 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ3 + oct = C8H17J2 + oct-OOH3 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ3 + oct = C8H17J3 + oct-OOH3 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ3 + oct = C8H17J4 + oct-OOH3 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ4 + oct = C8H17J2 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ4 + oct = C8H17J3 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
-oct-OOJ4 + oct = C8H17J4 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+
+////Propagation rate constants reported by Korcek using stirred flow reactor measurements (for abstraction of secondary hydrogens by secondary hydroperoxides) 
+// oct-OOJ2 + oct = C8H17J2 + oct-OOH2 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ2 + oct = C8H17J3 + oct-OOH2 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ2 + oct = C8H17J4 + oct-OOH2 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ3 + oct = C8H17J2 + oct-OOH3 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ3 + oct = C8H17J3 + oct-OOH3 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ3 + oct = C8H17J4 + oct-OOH3 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ4 + oct = C8H17J2 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ4 + oct = C8H17J3 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+// oct-OOJ4 + oct = C8H17J4 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
+
+// CBS-QB3 estimates from Pfaendtner and Broadbelt
+oct-OOJ2 + oct = C8H17J2 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ2 + oct = C8H17J3 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ2 + oct = C8H17J4 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ3 + oct = C8H17J2 + oct-OOH3  				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ3 + oct = C8H17J3 + oct-OOH3 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ3 + oct = C8H17J4 + oct-OOH3  				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ4 + oct = C8H17J2 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ4 + oct = C8H17J3 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+oct-OOJ4 + oct = C8H17J4 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
 
 O2QOOH2 = C8H16O3(18) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
 O2QOOH1 = C8H16O3(27) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
