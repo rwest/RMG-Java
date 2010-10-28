@@ -448,6 +448,7 @@ public class ReactionModelGenerator {
         			setUseDiffusion(false);
         		}
         		else throw new InvalidSymbolException("condition.txt: Unknown diffusion flag: " + diffusionOnOff);
+        		line = ChemParser.readMeaningfulLine(reader,true);//read in reactants or thermo line
         	}
 
             /* AJ 12JULY2010:
@@ -455,9 +456,7 @@ public class ReactionModelGenerator {
              */
              //else throw new InvalidSymbolException("condition.txt: Cannot find diffusion flag.");
 
-            //line = ChemParser.readMeaningfulLine(reader);//read in reactants or thermo line
-			
-			line = ChemParser.readMeaningfulLine(reader, true);//read in reactants or thermo line
+			// Should have already read in reactants or thermo line into variable 'line'
 			// Read in optional QM thermo  generation
         	if (line.startsWith("ThermoMethod:")) {
         		StringTokenizer st = new StringTokenizer(line);
@@ -660,7 +659,7 @@ public class ReactionModelGenerator {
 //        		}
            	}
         	else throw new InvalidSymbolException("condition.txt: can't find Inert gas concentration!");
-			
+            
         	// read in spectroscopic data estimator
 			line = ChemParser.readMeaningfulLine(reader, true);
         	if (line.startsWith("SpectroscopicDataEstimator:")) {
@@ -1234,27 +1233,30 @@ public class ReactionModelGenerator {
 				//DynamicSimulator ds = (DynamicSimulator)iter4.next();
 				for (Iterator iter2 = presList.iterator(); iter2.hasNext(); ){
 					PressureModel pm = (PressureModel)iter2.next();
-					InitialStatus is = (InitialStatus)iter3.next();//10/31/07 gmagoon: moved from outer "for loop""
-					DynamicSimulator ds = (DynamicSimulator)iter4.next();
-					// temperatureArray.add(tm.getTemperature(is.getTime()));//10/30/07 gmagoon: added; //10/31/07 added .getTemperature(is.getTime()); 11/6/07 gmagoon: moved before initialization of lrg;
-					// pressureArray.add(pm.getPressure(is.getTime()));//10/30/07 gmagoon: added//UPDATE: commenting out: not needed if updateKLeak is done for one temperature/pressure at a time;11/1-2/07 restored with .getTemperature(is.getTime()) added;11/6/07 gmagoon: moved before initialization of lrg;
-					//11/1/07 gmagoon: trying to make a deep copy of terminationTester when it is instance of ConversionTT
-					//UPDATE: actually, I don't think this deep copy was necessary; original case with FinishController fc = new FinishController(finishController.getTerminationTester(), finishController.getValidityTester()) is probably OK; (in any case, this didn't do completetly deep copy (references to speciesConversion element in LinkedList were the same);
-					// TerminationTester termTestCopy;
-					// if (finishController.getTerminationTester() instanceof ConversionTT){
-					//    ConversionTT termTest = (ConversionTT)finishController.getTerminationTester();
-					//     LinkedList spcCopy = (LinkedList)(termTest.getSpeciesGoalConversionSetList().clone());
-					//     termTestCopy = new ConversionTT(spcCopy);
-					// }
-					// else{
-					//     termTestCopy = finishController.getTerminationTester();
-					// }
-					
-					FinishController fc = new FinishController(finishController.getTerminationTester(), finishController.getValidityTester());//10/31/07 gmagoon: changed to create new finishController instance in each case (apparently, the finish controller becomes associated with reactionSystem in setFinishController within ReactionSystem); alteratively, could use clone, but might need to change FinishController to be "cloneable"
-					// FinishController fc = new FinishController(termTestCopy, finishController.getValidityTester());
-					reactionSystemList.add(new ReactionSystem(tm, pm, reactionModelEnlarger, fc, ds, getPrimaryKineticLibrary(), getReactionGenerator(), getSpeciesSeed(), is, getReactionModel(),lrg, i, equationOfState)); 
-					i++;//10/30/07 gmagoon: added
-					System.out.println("Created reaction system "+i+"\n");
+					for (int numConcList=0; numConcList<initialStatusList.size()/tempList.size()/presList.size(); ++numConcList) {
+//						InitialStatus is = (InitialStatus)iter3.next();//10/31/07 gmagoon: moved from outer "for loop""
+						InitialStatus is = (InitialStatus)initialStatusList.get(i);						DynamicSimulator ds = (DynamicSimulator)iter4.next();
+						// temperatureArray.add(tm.getTemperature(is.getTime()));//10/30/07 gmagoon: added; //10/31/07 added .getTemperature(is.getTime()); 11/6/07 gmagoon: moved before initialization of lrg;
+						// pressureArray.add(pm.getPressure(is.getTime()));//10/30/07 gmagoon: added//UPDATE: commenting out: not needed if updateKLeak is done for one temperature/pressure at a time;11/1-2/07 restored with .getTemperature(is.getTime()) added;11/6/07 gmagoon: moved before initialization of lrg;
+						//11/1/07 gmagoon: trying to make a deep copy of terminationTester when it is instance of ConversionTT
+						//UPDATE: actually, I don't think this deep copy was necessary; original case with FinishController fc = new FinishController(finishController.getTerminationTester(), finishController.getValidityTester()) is probably OK; (in any case, this didn't do completetly deep copy (references to speciesConversion element in LinkedList were the same);
+						// TerminationTester termTestCopy;
+						// if (finishController.getTerminationTester() instanceof ConversionTT){
+						//    ConversionTT termTest = (ConversionTT)finishController.getTerminationTester();
+						//     LinkedList spcCopy = (LinkedList)(termTest.getSpeciesGoalConversionSetList().clone());
+						//     termTestCopy = new ConversionTT(spcCopy);
+						// }
+						// else{
+						//     termTestCopy = finishController.getTerminationTester();
+						// }
+						
+						FinishController fc = new FinishController(finishController.getTerminationTester(), finishController.getValidityTester());//10/31/07 gmagoon: changed to create new finishController instance in each case (apparently, the finish controller becomes associated with reactionSystem in setFinishController within ReactionSystem); alteratively, could use clone, but might need to change FinishController to be "cloneable"
+						// FinishController fc = new FinishController(termTestCopy, finishController.getValidityTester());
+						reactionSystemList.add(new ReactionSystem(tm, pm, reactionModelEnlarger, fc, ds, getPrimaryKineticLibrary(), getReactionGenerator(), getSpeciesSeed(), is, getReactionModel(),lrg, i, equationOfState)); 
+						i++;//10/30/07 gmagoon: added
+						System.out.println("Created reaction system "+i+"\n");
+						System.out.println((initialStatusList.get(i-1)).toString() + "\n");
+					}
 				}
 			}
 			//    PDepNetwork.setTemperatureArray(temperatureArray);//10/30/07 gmagoon: passing temperatureArray to PDepNetwork; 11/6/07 gmagoon: moved before initialization of lrg;
@@ -1430,8 +1432,17 @@ public class ReactionModelGenerator {
 				
 				//writeCoreSpecies();
 				double pt = System.currentTimeMillis();
+				// Grab all species from primary kinetics / reaction libraries
+				//	WE CANNOT PRUNE THESE SPECIES
+				HashMap unprunableSpecies = new HashMap();
+				if (getPrimaryKineticLibrary() != null) {
+					unprunableSpecies.putAll(getPrimaryKineticLibrary().speciesSet);
+				}
+				if (getReactionLibrary() != null) {
+					unprunableSpecies.putAll(getReactionLibrary().getDictionary());
+				}
 				//prune the reaction model (this will only do something in the AUTO case)
-				pruneReactionModel();
+				pruneReactionModel(unprunableSpecies);
 				garbageCollect();
 				//System.out.println("After pruning:");
 				//printModelSize();
@@ -1761,11 +1772,10 @@ public class ReactionModelGenerator {
 			
         }
 
-        for (Integer i = 0; i<reactionSystemList.size();i++) {
-			// chemkin files are overwritten each loop - only the last gets saved
-			ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-			Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus()); 
-        }
+        // All of the reaction systems are the same, so just write the chemkin
+        //	file for the first reaction system
+		ReactionSystem rs = (ReactionSystem)reactionSystemList.get(0);
+		Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus()); 
 		
         //9/1/09 gmagoon: if we are using QM, output a file with the CHEMKIN name, the RMG name, the (modified) InChI, and the (modified) InChIKey
         if (ChemGraph.useQM){
@@ -2828,15 +2838,6 @@ public class ReactionModelGenerator {
 					bw.write(writeRatesAndParameters(currentPDepRxn,numFameTemps,
 													 numFamePress,numChebyTemps,numChebyPress,numPlog));
 					
-					PDepReaction currentPDepReverseRxn = currentPDepRxn.getReverseReaction();
-					// Not all netReactions are reversible
-					if (currentPDepReverseRxn != null) {
-						bw.write(currentPDepReverseRxn.toString());
-						bw.newLine();
-						bw.write(writeRatesAndParameters(currentPDepReverseRxn,numFameTemps,
-														 numFamePress,numChebyTemps,numChebyPress,numPlog));
-					}
-					
 				}
 				
 				// Write nonincludedReactionList
@@ -3341,12 +3342,8 @@ public class ReactionModelGenerator {
 
 						// Read in the reverse reaction
 						if (reactionIsReversible) {
-							line = ChemParser.readMeaningfulLine(reader, true);
-							
-							rateCoefficients = parseRateCoeffsFromRestartFile(numFameTs,numFamePs,reader);
-							pdepk = parsePDepRateConstantFromRestartFile(reader,numChebyTs,numChebyPs,rateCoefficients,numPlogs,EaUnits);											
-							
-							PDepReaction reverse = new PDepReaction(Products, Reactants, pdepk);
+							PDepReaction reverse = new PDepReaction(Products, Reactants, new PDepRateConstant());
+							reverse.setPDepRateConstant(null);
 							reverse.setReverseReaction(forward);
 							forward.setReverseReaction(reverse);
 						}
@@ -3391,12 +3388,8 @@ public class ReactionModelGenerator {
 						
 						// Read in the reverse reaction
 						if (reactionIsReversible) {
-							line = ChemParser.readMeaningfulLine(reader, true);
-							
-							rateCoefficients = parseRateCoeffsFromRestartFile(numFameTs,numFamePs,reader);
-							pdepk = parsePDepRateConstantFromRestartFile(reader,numChebyTs,numChebyPs,rateCoefficients,numPlogs,EaUnits);											
-							
-							PDepReaction reverse = new PDepReaction(Products, Reactants, pdepk);
+							PDepReaction reverse = new PDepReaction(Products, Reactants, new PDepRateConstant());
+							reverse.setPDepRateConstant(null);
 							reverse.setReverseReaction(forward);
 							forward.setReverseReaction(reverse);
 						}
@@ -3481,6 +3474,8 @@ public class ReactionModelGenerator {
 			        PDepIsomer Products = new PDepIsomer(p);
 			        PDepReaction pdeppathrxn = new PDepReaction(Reactants,Products,pathRxn);
 			        newNetwork.addReaction(pdeppathrxn,true);
+			        newNetwork.addIsomer(Reactants);
+					newNetwork.addIsomer(Products);
 					
 					line = ChemParser.readMeaningfulLine(reader, true);					
 				}
@@ -3986,7 +3981,7 @@ public class ReactionModelGenerator {
         //#]
     }
 
-    public void pruneReactionModel() {
+    public void pruneReactionModel(HashMap unprunableSpecies) {
 		
 		HashMap prunableSpeciesMap = new HashMap();
 		//check whether all the reaction systems reached target conversion/time
@@ -4003,24 +3998,31 @@ public class ReactionModelGenerator {
 		  edgeTol>0 && 
 		  (((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber()+reactionModel.getSpeciesNumber())>= minSpeciesForPruning){
 			
-			int numberToBePruned = ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber() - maxEdgeSpeciesAfterPruning; 
+			int numberToBePruned = ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber() - maxEdgeSpeciesAfterPruning;
+			System.out.println("PDep Pruning DEBUG:\nThe number of species in the model's edge, before pruning: " + ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber());
+			System.out.println("PDep Pruning DEBUG:\nRMG thinks the following number of species" + 
+					" needs to be pruned: " + numberToBePruned);
 			Iterator iter = JDAS.edgeID.keySet().iterator();//determine the maximum edge flux ratio for each edge species
 			while(iter.hasNext()){
 				Species spe = (Species)iter.next();
 				Integer id = (Integer)JDAS.edgeID.get(spe);
 				double maxmaxRatio = ds0.maxEdgeFluxRatio[id-1];
 				boolean prunable = ds0.prunableSpecies[id-1];
-				for (Integer i = 1; i < reactionSystemList.size(); i++) {//go through the rest of the reaction systems to see if there are higher max flux ratios
+				//go through the rest of the reaction systems to see if there are higher max flux ratios
+				for (Integer i = 1; i < reactionSystemList.size(); i++) {
 					JDAS ds = (JDAS)((ReactionSystem) reactionSystemList.get(i)).getDynamicSimulator();
 					if(ds.maxEdgeFluxRatio[id-1] > maxmaxRatio) maxmaxRatio = ds.maxEdgeFluxRatio[id-1];
-					if(prunable && !ds.prunableSpecies[id-1]) prunable = false;//I can't imagine a case where this would occur (if the conc. is zero at one condition, it should be zero at all conditions), but it is included for completeness
+					if(!ds.prunableSpecies[id-1]) prunable = false;// probably redundant: if the conc. is zero in one system, it should be zero in all systems, but it is included for completeness
 				}
-				//if the maximum max edge flux ratio is less than the edge inclusion threshhold and the species is "prunable" (i.e. it doesn't have any reactions producing it with zero flux), schedule the species for pruning
-				if( prunable){  //  && maxmaxRatio < edgeTol
+				//if the species is "prunable" (i.e. it doesn't have any reactions producing it with zero flux), add it to the prunableSpeciesMap
+				if( prunable){
 					prunableSpeciesMap.put(spe, maxmaxRatio);
-					// at this point prunableSpecies includes ALL prunable species, no matter how large their flux
 				}
 			}
+			// at this point prunableSpeciesMap includes ALL prunable species, no matter how large their flux
+			
+			System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
+					" as prunable, before checking against explored (included) species: " + prunableSpeciesMap.size());
 
 			// Pressure dependence only: Species that are included in any
 			// PDepNetwork are not eligible for pruning, so they must be removed
@@ -4036,6 +4038,9 @@ public class ReactionModelGenerator {
 					prunableSpeciesMap.remove(iter.next());
 				}
 			}
+			
+			System.out.println("PDep Pruning DEBUG:\nRMG now reduced the number of prunable species," +
+					" after checking against explored (included) species, to: " + prunableSpeciesMap.size());
 
 			// sort the prunableSpecies by maxmaxRatio
 			// i.e. sort the map by values
@@ -4047,6 +4052,8 @@ public class ReactionModelGenerator {
 							 }
 							 });
 			List speciesToPrune = new LinkedList();
+			int belowThreshold = 0;
+			int lowMaxFlux = 0;
 			for (Iterator it = prunableSpeciesList.iterator(); it.hasNext();) {
 				Map.Entry entry = (Map.Entry)it.next();
 				Species spe = (Species)entry.getKey();
@@ -4055,14 +4062,20 @@ public class ReactionModelGenerator {
 				{
 					System.out.println("Edge species "+spe.getChemkinName() +" has a maximum flux ratio ("+maxmaxRatio+") lower than edge inclusion threshhold and will be pruned.");
 					speciesToPrune.add(spe);
+					++belowThreshold;
 				}
 				else if ( numberToBePruned - speciesToPrune.size() > 0 ) {
 					System.out.println("Edge species "+spe.getChemkinName() +" has a low maximum flux ratio ("+maxmaxRatio+") and will be pruned to reduce the edge size to the maximum ("+maxEdgeSpeciesAfterPruning+").");
-					speciesToPrune.add(spe);					
+					speciesToPrune.add(spe);
+					++lowMaxFlux;
 				}
 				else break;  // no more to be pruned
 			}
 			
+			System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
+					" to be pruned due to max flux ratio lower than threshold: " + belowThreshold);
+			System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
+					" to be pruned due to low max flux ratio : " + lowMaxFlux);
 			
 			//now, speciesToPrune has been filled with species that should be pruned from the edge
 			System.out.println("Pruning...");
@@ -4074,7 +4087,12 @@ public class ReactionModelGenerator {
 				writePrunedEdgeSpecies(spe);
 				((CoreEdgeReactionModel)getReactionModel()).getUnreactedSpeciesSet().remove(spe);
 				//SpeciesDictionary.getInstance().getSpeciesSet().remove(spe);
-				SpeciesDictionary.getInstance().remove(spe);
+				if (!unprunableSpecies.containsValue(spe))
+					SpeciesDictionary.getInstance().remove(spe);
+				else System.out.println("Pruning Message: Not removing the following species " +
+						"from the SpeciesDictionary\nas it is present in a Primary Kinetic / Reaction" +
+						" Library\nThe species will still be removed from the Edge of the " +
+						"Reaction Mechanism\n" + spe.toString());
 				JDAS.edgeID.remove(spe);
 			}
 			//remove reactions from the edge involving pruned species
@@ -4102,6 +4120,9 @@ public class ReactionModelGenerator {
 				if(rtr!=null){
 				    rtr.removeFromReactionDictionaryByStructure(reverse.getStructure());
 				}
+				if ((reaction.isForward() && reaction.getKineticsSource(0).contains("Library")) ||
+						(reaction.isBackward() && reaction.getReverseReaction().getKineticsSource(0).contains("Library")))
+					continue;
 				reaction.setStructure(null);
 				if(reverse!=null){
 				    reverse.setStructure(null);
@@ -4168,6 +4189,9 @@ public class ReactionModelGenerator {
 						if(rtr!=null){
 						    rtr.removeFromReactionDictionaryByStructure(reverse.getStructure());
 						}
+						if ((reaction.isForward() && reaction.getKineticsSource(0).contains("Library")) ||
+								(reaction.isBackward() && reaction.getReverseReaction().getKineticsSource(0).contains("Library")))
+							continue;
 						reaction.setStructure(null);
 						if(reverse!=null){
 						    reverse.setStructure(null);
@@ -4235,6 +4259,7 @@ public class ReactionModelGenerator {
 				}
 			} 
 		}
+		System.out.println("PDep Pruning DEBUG:\nThe number of species in the model's edge, after pruning: " + ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber());
         return;
     }
 	
@@ -4796,6 +4821,7 @@ public class ReactionModelGenerator {
     public LinkedHashMap populateInitialStatusListWithReactiveSpecies(BufferedReader reader) throws IOException {
     	LinkedHashMap speciesSet = new LinkedHashMap();
     	LinkedHashMap speciesStatus = new LinkedHashMap();
+    	int numSpeciesStatus = 0;
 		String line = ChemParser.readMeaningfulLine(reader, true);
 		while (!line.equals("END")) {
 			StringTokenizer st = new StringTokenizer(line);
@@ -4818,37 +4844,14 @@ public class ReactionModelGenerator {
 				// We're good
 			}
 			if (!(st.hasMoreTokens())) throw new InvalidSymbolException("Couldn't find concentration of species: "+name);
-			String conc = st.nextToken();
-			double concentration = Double.parseDouble(conc);
+			
+			// The next token will be the concentration units
 			String unit = st.nextToken();
 			unit = ChemParser.removeBrace(unit);
-			if (unit.equals("mole/l") || unit.equals("mol/l") || unit.equals("mole/liter") || unit.equals("mol/liter")) {
-				concentration /= 1000;
-				unit = "mol/cm3";
-			}
-			else if (unit.equals("mole/m3") || unit.equals("mol/m3")) {
-				concentration /= 1000000;
-				unit = "mol/cm3";
-			}
-			else if (unit.equals("molecule/cm3") || unit.equals("molecules/cm3")) {
-				concentration /= 6.022e23;
-			}
-			else if (!unit.equals("mole/cm3") && !unit.equals("mol/cm3")) {
-				throw new InvalidUnitException("Species Concentration in condition.txt!");
-			}
 			
-			//GJB to allow "unreactive" species that only follow user-defined library reactions.  
-			// They will not react according to RMG reaction families 
-			boolean IsReactive = true;
-            boolean IsConstantConcentration = false;
-			while (st.hasMoreTokens()) {
-				String reactive = st.nextToken().trim();
-				if (reactive.equalsIgnoreCase("unreactive"))
-					IsReactive = false;
-                if (reactive.equalsIgnoreCase("constantconcentration"))
-                    IsConstantConcentration=true;
-			}
-			
+			// Read in the graph (and make the species) before we parse all of the concentrations
+			//	Will store each SpeciesStatus (NXM where N is the # of species and M is the # of
+			//	concentrations) in a LinkedHashMap, with a (int) counter as the unique key
 			Graph g = ChemParser.readChemGraph(reader);
 			ChemGraph cg = null;
 			try {
@@ -4860,14 +4863,52 @@ public class ReactionModelGenerator {
 			}
 			//System.out.println(name);
 			Species species = Species.make(name,cg);
+			
+			// The remaining tokens are either:
+			//		The desired concentrations
+			//		The flag "unreactive"
+			//		The flag "constantconcentration"
+			//GJB to allow "unreactive" species that only follow user-defined library reactions.  
+			// They will not react according to RMG reaction families 
+			boolean IsReactive = true;
+            boolean IsConstantConcentration = false;
+			
+            double concentration = 0.0;
+			while (st.hasMoreTokens()) {
+				String reactive = st.nextToken().trim();
+				if (reactive.equalsIgnoreCase("unreactive"))
+					IsReactive = false;
+				else if (reactive.equalsIgnoreCase("constantconcentration"))
+                    IsConstantConcentration=true;
+				else {
+					concentration = Double.parseDouble(reactive);
+					if (unit.equals("mole/l") || unit.equals("mol/l") || unit.equals("mole/liter") || unit.equals("mol/liter")) {
+						concentration /= 1000;
+						unit = "mol/cm3";
+					}
+					else if (unit.equals("mole/m3") || unit.equals("mol/m3")) {
+						concentration /= 1000000;
+						unit = "mol/cm3";
+					}
+					else if (unit.equals("molecule/cm3") || unit.equals("molecules/cm3")) {
+						concentration /= 6.022e23;
+					}
+					else if (!unit.equals("mole/cm3") && !unit.equals("mol/cm3")) {
+						throw new InvalidUnitException("Species Concentration in condition.txt!");
+					}
+				}
+				// Make a SpeciesStatus and store it in the LinkedHashMap
+//				double flux = 0;
+//				int species_type = 1; // reacted species
+				SpeciesStatus ss = new SpeciesStatus(species,1,concentration,0.0);
+				speciesStatus.put(numSpeciesStatus, ss);
+				++numSpeciesStatus;
+			}			
+			
 			species.setReactivity(IsReactive); // GJB
             species.setConstantConcentration(IsConstantConcentration);
    			speciesSet.put(name, species);
 			getSpeciesSeed().add(species);
-			double flux = 0;
-			int species_type = 1; // reacted species
-			SpeciesStatus ss = new SpeciesStatus(species,species_type,concentration,flux);
-			speciesStatus.put(species, ss);
 			line = ChemParser.readMeaningfulLine(reader, true);
 		}
 		ReactionTime initial = new ReactionTime(0,"S");
@@ -4878,13 +4919,18 @@ public class ReactionModelGenerator {
 			for (Iterator iter2 = presList.iterator(); iter2.hasNext(); ){
 				PressureModel pm = (PressureModel)iter2.next();
 				//   LinkedHashMap speStat = (LinkedHashMap)speciesStatus.clone();//10/31/07 gmagoon: trying creating multiple instances of speciesStatus to address issues with concentration normalization (last normalization seems to apply to all)
-				Set ks = speciesStatus.keySet();
-				LinkedHashMap speStat = new LinkedHashMap();
-				for (Iterator iter3 = ks.iterator(); iter3.hasNext();){//11/1/07 gmagoon: perform deep copy; (is there an easier or more elegant way to do this?)
-					SpeciesStatus ssCopy = (SpeciesStatus)speciesStatus.get(iter3.next());
-					speStat.put(ssCopy.getSpecies(),new SpeciesStatus(ssCopy.getSpecies(),ssCopy.getSpeciesType(),ssCopy.getConcentration(),ssCopy.getFlux()));
+//				Set ks = speciesStatus.keySet();
+//				for (Iterator iter3 = ks.iterator(); iter3.hasNext();){//11/1/07 gmagoon: perform deep copy; (is there an easier or more elegant way to do this?)
+				int reactionSystemCounter = 0;
+				for (int totalConcs=0; totalConcs<numSpeciesStatus/speciesSet.size(); ++totalConcs) {
+					LinkedHashMap speStat = new LinkedHashMap();
+					for (int totalSpecs=0; totalSpecs<speciesSet.size(); ++totalSpecs) {
+						SpeciesStatus ssCopy = (SpeciesStatus)speciesStatus.get(totalConcs+totalSpecs*numSpeciesStatus/speciesSet.size());
+						String blah = ssCopy.getSpecies().getName();
+						speStat.put(ssCopy.getSpecies(),new SpeciesStatus(ssCopy.getSpecies(),ssCopy.getSpeciesType(),ssCopy.getConcentration(),ssCopy.getFlux()));
+					}
+					initialStatusList.add(new InitialStatus(speStat,tm.getTemperature(initial),pm.getPressure(initial)));
 				}
-				initialStatusList.add(new InitialStatus(speStat,tm.getTemperature(initial),pm.getPressure(initial)));
 			}
 		}
 		
@@ -4896,30 +4942,45 @@ public class ReactionModelGenerator {
    		while (!line.equals("END")) {
 	    	StringTokenizer st = new StringTokenizer(line);
 	    	String name = st.nextToken().trim();
-			String conc = st.nextToken();
-			double inertConc = Double.parseDouble(conc);
+	    	
+	    	// The next token is the units of concentration
 			String unit = st.nextToken();
 			unit = ChemParser.removeBrace(unit);
-			if (unit.equals("mole/l") || unit.equals("mol/l") || unit.equals("mole/liter") || unit.equals("mol/liter")) {
-				inertConc /= 1000;
-				unit = "mol/cm3";
-			}
-			else if (unit.equals("mole/m3") || unit.equals("mol/m3")) {
-				inertConc /= 1000000;
-				unit = "mol/cm3";
-			}
-			else if (unit.equals("molecule/cm3") || unit.equals("molecules/cm3")) {
-				inertConc /= 6.022e23;
-				unit = "mol/cm3";
-			}
-			else if (!unit.equals("mole/cm3") && !unit.equals("mol/cm3")) {
-				throw new InvalidUnitException("Inert Gas Concentration not recognized: " + unit);
+			
+			// The remaining tokens are concentrations
+			double inertConc = 0.0;
+			int counter = 0;
+			while (st.hasMoreTokens()) {
+				String conc = st.nextToken();
+				inertConc = Double.parseDouble(conc);
+		
+				if (unit.equals("mole/l") || unit.equals("mol/l") || unit.equals("mole/liter") || unit.equals("mol/liter")) {
+					inertConc /= 1000;
+					unit = "mol/cm3";
+				}
+				else if (unit.equals("mole/m3") || unit.equals("mol/m3")) {
+					inertConc /= 1000000;
+					unit = "mol/cm3";
+				}
+				else if (unit.equals("molecule/cm3") || unit.equals("molecules/cm3")) {
+					inertConc /= 6.022e23;
+					unit = "mol/cm3";
+				}
+				else if (!unit.equals("mole/cm3") && !unit.equals("mol/cm3")) {
+					throw new InvalidUnitException("Inert Gas Concentration not recognized: " + unit);
+				}
+				//SystemSnapshot.putInertGas(name,inertConc);
+//				for(Iterator iter=initialStatusList.iterator();iter.hasNext(); ){//6/23/09 gmagoon: needed to change this to accommodate non-static inertConc
+//					((InitialStatus)iter.next()).putInertGas(name,inertConc);
+//				}
+				int numberOfDiffTP = tempList.size() * presList.size();
+				for (int isIndex=counter; isIndex<initialStatusList.size(); isIndex+=initialStatusList.size()/numberOfDiffTP) {
+					InitialStatus is = ((InitialStatus)initialStatusList.get(isIndex));
+					((InitialStatus)initialStatusList.get(isIndex)).putInertGas(name,inertConc);
+				}
+				++counter;
 			}
 			
-			//SystemSnapshot.putInertGas(name,inertConc);
-			for(Iterator iter=initialStatusList.iterator();iter.hasNext(); ){//6/23/09 gmagoon: needed to change this to accommodate non-static inertConc
-				((InitialStatus)iter.next()).putInertGas(name,inertConc);
-			}
 	   		line = ChemParser.readMeaningfulLine(reader, true);
 		}
     }

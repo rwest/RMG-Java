@@ -22,7 +22,7 @@ contains
         real(8), intent(out) :: grainSize
         integer, intent(out) :: numGrains
         integer, intent(out) :: method, model
-        integer, dimension(:) :: modelOptions
+        integer, dimension(:), intent(inout) :: modelOptions
 
         ! The current line of text from stdin
         character(len=1024) line
@@ -197,11 +197,7 @@ contains
         allocate( net%isomers(1:numIsomers+numReactants+numProducts) )
         do i = 1, numIsomers+numReactants+numProducts
             call readIsomer(net%isomers(i), net%species)
-            if (size(net%isomers(i)%species) == 1) then
-                write (1,fmt=*) "    Isomer", i, "is", net%isomers(i)%species(1)
-            else
-                write (1,fmt=*) "    Isomer", i, "is", net%isomers(i)%species(1), "and", net%isomers(i)%species(2)
-            end if
+            write (1,fmt=*) "    Isomer", i, "is ", net%isomers(i)%name
         end do
 
         ! Read reactions
@@ -267,7 +263,13 @@ contains
 
             line = readMeaningfulLine()
             call processQuantity(line, units, rxn%arrhenius%A)
-            if (index(units(1:4), 's^-1') == 0) then
+            if (index(units(1:4), 's^-1') /= 0) then
+                rxn%arrhenius%A = rxn%arrhenius%A
+            elseif (index(units(1:9), 'm^3/mol*s') /= 0) then
+                rxn%arrhenius%A = rxn%arrhenius%A
+            elseif (index(units(1:10), 'cm^3/mol*s') /= 0) then
+                rxn%arrhenius%A = rxn%arrhenius%A * 1.0e-6
+            else
                 write (0, fmt='(a)') 'Invalid units for Arrhenius preexponential.'
                 stop
             end if
@@ -295,6 +297,9 @@ contains
             write (0, fmt='(a)') 'Invalid high-pressure-limit kinetics model.'
             stop
         end if
+
+        ! Set equation
+        rxn%equation = trim(isomerList(rxn%reac)%name)//' -> '//trim(isomerList(rxn%prod)%name)
 
     end subroutine
 
@@ -332,7 +337,12 @@ contains
             end do
         end do
 
-
+        ! Generate name string
+        if (size(isom%species) == 1) then
+            isom%name = trim(speciesList(isom%species(1))%name)
+        else
+            isom%name = trim(speciesList(isom%species(1))%name)//' + '//trim(speciesList(isom%species(2))%name)
+        end if
 
     end subroutine
 
@@ -815,7 +825,7 @@ contains
         write (*, fmt='(A)'), ''
         ! Number of k(T, P) values
         write (*, fmt='(A)'), '# The number of phenomenological rate coefficients in the network'
-        write (*, *), ((nIsom+nReac)*(nIsom+nReac+nProd-1))
+        write (*, *), ((nIsom+nReac)*(nIsom+nReac-1)/2 + (nProd)*(nIsom+nReac))
         write (*, fmt='(A)'), ''
 
     end subroutine

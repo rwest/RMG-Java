@@ -225,6 +225,9 @@ public class FastMasterEqn implements PDepKineticsEstimator {
 			System.out.println("Warning: Empty pressure-dependent network detected. Skipping.");
 			return;
 		}
+		
+		System.out.println("Solving PDepNetwork #" + Integer.toString(pdn.getID()) +
+						   " (" + pdn.getSpeciesType() + ")");
 
 		// Sort isomers such that the order is:
 		//	1. Explored unimolecular isomers
@@ -682,27 +685,18 @@ public class FastMasterEqn implements PDepKineticsEstimator {
 				
 				PDepReaction rxn = pathReactionList.get(i);
 				
-				double A = 0.0, Ea = 0.0, n = 0.0;
-				if (rxn.isForward()) {
-					Temperature stdtemp = new Temperature(298,"K");
-					double Hrxn = rxn.calculateHrxn(stdtemp);
-					Kinetics[] k_array = rxn.getKinetics();
-					Kinetics kin = computeKUsingLeastSquares(k_array, Hrxn);
-					A = kin.getAValue();
-					n = kin.getNValue();
-					Ea = kin.getEValue();//kin should be ArrheniusKinetics (rather than ArrheniusEPKinetics), so it should be correct to use getEValue here (similarly for other uses in this file)
-				}
-				else {
-					Temperature stdtemp = new Temperature(298,"K");
-					double Hrxn = rxn.calculateHrxn(stdtemp);
-					((Reaction) rxn).generateReverseReaction();
-					Kinetics[] k_array = ((Reaction)rxn).getFittedReverseKinetics();
-					Kinetics kin = computeKUsingLeastSquares(k_array, -Hrxn);//gmagoon: I'm not sure, with forward/reverse reactions here whether it is correct to use Hrxn or -Hrxn, but in any case, getFittedReverseKinetics should return an ArrheniusKinetics (not ArrheniusEPKinetics) object, so it will not be used in computeKUsingLeastSquares anyway
-//					Kinetics kin = ((Reaction) rxn).getFittedReverseKinetics();
-					A = kin.getAValue();
-					Ea = kin.getEValue();
-					n = kin.getNValue();
-				}
+				// The reaction must be in the direction for which we are using the kinetics
+                if (!rxn.isForward())
+                    throw new PDepException("Encountered a path reaction that was not a forward reaction!");
+
+                double A = 0.0, Ea = 0.0, n = 0.0;
+				Temperature stdtemp = new Temperature(298,"K");
+                double Hrxn = rxn.calculateHrxn(stdtemp);
+                Kinetics[] k_array = rxn.getKinetics();
+                Kinetics kin = computeKUsingLeastSquares(k_array, Hrxn);
+                A = kin.getAValue();
+                n = kin.getNValue();
+                Ea = kin.getEValue();//kin should be ArrheniusKinetics (rather than ArrheniusEPKinetics), so it should be correct to use getEValue here (similarly for other uses in this file)
 
 				input.append( "# The reaction equation, in the form A + B --> C + D\n" );
 				input.append( rxn.toString() + "\n" );
@@ -726,7 +720,7 @@ public class FastMasterEqn implements PDepKineticsEstimator {
 				if (rxn.getReactant().isUnimolecular())
 					input.append( "s^-1 " + Double.toString(A) + "\n" );
 				else if (rxn.getReactant().isMultimolecular())
-					input.append( "cm^3/mol*s " + Double.toString(A) + "\n" );
+					input.append( "m^3/mol*s " + Double.toString(A * 1.0e-6) + "\n" );
 				input.append( "J/mol " + Double.toString(Ea * 4184) + "\n" );
 				input.append( Double.toString(n) + "\n" );
 
@@ -923,7 +917,13 @@ public class FastMasterEqn implements PDepKineticsEstimator {
 				PDepIsomer reactant = isomerList.get(reac);
 				PDepIsomer product = isomerList.get(prod);
 				PDepReaction rxn = new PDepReaction(reactant, product, pDepRate);
-				
+
+                // Create the reverse net reaction if applicable
+                if (product.getIncluded())
+                    rxn.generateReverseReaction();
+                else
+                    rxn.setReverseReaction(null);
+                
 				/*
 				 * MRH 26Feb2010:
 				 * Checking whether pdep rates exceed the high-P-limit
@@ -1030,39 +1030,11 @@ public class FastMasterEqn implements PDepKineticsEstimator {
 			// Close stream when finished
 			br.close();
 
-			// Set reverse reactions
-			int i = 0;
-            Temperature T = temperatures[0];
-            Pressure P = pressures[pressures.length/2];
-            while (i < netReactionList.size()) {
-				PDepReaction rxn1 = netReactionList.get(i);
-				if (rxn1.getReverseReaction() == null) {
-					boolean found = false;
-					for (int j = 0; j < netReactionList.size(); j++) {
-						PDepReaction rxn2 = netReactionList.get(j);
-						if (rxn1.getReactant().equals(rxn2.getProduct()) &&
-							rxn2.getReactant().equals(rxn1.getProduct())) {
-							rxn1.setReverseReaction(rxn2);
-							rxn2.setReverseReaction(rxn1);
-                            // Remove the reaction with the smaller rate constant
-                            // This *should* be the exothermic direction
-                            // We use the lowest temperature and middle pressure for this calculation
-                            if (rxn1.calculateRate(T, P) > rxn2.calculateRate(T, P))
-                            	netReactionList.remove(rxn2);
-                            else
-                            	netReactionList.remove(rxn1);
-                            found = true;
-                            break;
-						}
-					}
-					if (!found) {
-						rxn1.setReverseReaction(null);
-						i++;
-					}
-				}
-				else
-					i++;
-			}
+            // If we ignored a rate coefficient from the FAME output for any
+            // reason, then fail the FAME job
+            if (ignoredARate) {
+                throw new PDepException("One or more rate coefficients from the FAME output was ignored, possibly due to a NaN or Inf rate.");
+            }
 
 			// Update reaction lists (sort into included and nonincluded)
 			pdn.updateReactionLists(cerm);
