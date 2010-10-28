@@ -17,24 +17,35 @@ Reactions:
 // oct-OOJ4 + oct = C8H17J3 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
 // oct-OOJ4 + oct = C8H17J4 + oct-OOH4 				1.59E+12		0.0		16.00		0.0	0.0	0.0
 
-// CBS-QB3 estimates from Pfaendtner and Broadbelt
-oct-OOJ2 + oct = C8H17J2 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ2 + oct = C8H17J3 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ2 + oct = C8H17J4 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ3 + oct = C8H17J2 + oct-OOH3  				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ3 + oct = C8H17J3 + oct-OOH3 				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ3 + oct = C8H17J4 + oct-OOH3  				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ4 + oct = C8H17J2 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ4 + oct = C8H17J3 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
-oct-OOJ4 + oct = C8H17J4 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+//CBS-QB3 estimates from Pfaendtner and Broadbelt
+// oct-OOJ2 + oct = C8H17J2 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ2 + oct = C8H17J3 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ2 + oct = C8H17J4 + oct-OOH2 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ3 + oct = C8H17J2 + oct-OOH3  				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ3 + oct = C8H17J3 + oct-OOH3 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ3 + oct = C8H17J4 + oct-OOH3  				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ4 + oct = C8H17J2 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ4 + oct = C8H17J3 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
+// oct-OOJ4 + oct = C8H17J4 + oct-OOH4 				6.34E+11		0.0		18.1		0.0	0.0	0.0
 
-O2QOOH2 = C8H16O3(18) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH1 = C8H16O3(27) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH3 = C8H16O3(33) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH4 = C8H16O3(38) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH6 = C8H16O3(43) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH8 = C8H16O3(48) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH9 = C8H16O3(52) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH10 = C8H16O3(58) + HOJ						1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH11 = C8H16O3(62) + HOJ						1.2E10			0.35	15.7		0.0 0.0 0.0	
-O2QOOH16 = C8H16O3(69) + HOJ						1.2E10			0.35	15.7		0.0 0.0 0.0	
+// Refitted rate rules for propagation using termination for penta-decyl system from Landolt Bornstein
+oct-OOJ2 + oct = C8H17J2 + oct-OOH2 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ2 + oct = C8H17J3 + oct-OOH2 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ2 + oct = C8H17J4 + oct-OOH2 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ3 + oct = C8H17J2 + oct-OOH3 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ3 + oct = C8H17J3 + oct-OOH3 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ3 + oct = C8H17J4 + oct-OOH3 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ4 + oct = C8H17J2 + oct-OOH4 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ4 + oct = C8H17J3 + oct-OOH4 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+oct-OOJ4 + oct = C8H17J4 + oct-OOH4 				3.18E+12		0.0		17.85		0.0	0.0	0.0
+
+// O2QOOH2 = C8H16O3(18) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH1 = C8H16O3(27) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH3 = C8H16O3(33) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH4 = C8H16O3(38) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH6 = C8H16O3(43) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH8 = C8H16O3(48) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH9 = C8H16O3(52) + HOJ							1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH10 = C8H16O3(58) + HOJ						1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH11 = C8H16O3(62) + HOJ						1.2E10			0.35	15.7		0.0 0.0 0.0	
+// O2QOOH16 = C8H16O3(69) + HOJ						1.2E10			0.35	15.7		0.0 0.0 0.0	
