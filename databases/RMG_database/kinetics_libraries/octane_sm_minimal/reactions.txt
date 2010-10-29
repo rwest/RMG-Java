@@ -14,17 +14,39 @@ oct-OOH2 = C8H17OJ2 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0
 oct-OOH3 = C8H17OJ3 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
 oct-OOH4 = C8H17OJ4 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
 
-//Intra H migration of ROOH species to QOOH
+// All the rates used below are RMG estimates but located very late in the mechanism generation job or not at all. This is probably because of pruning and/or
+// higher tolerances. As a result, these are being forced into the core.
 
-oct-OOJ4 = C8H17O2J(5)											1107000.0	1.52	20.05		0.0 0.0 0.0	//intra_H_migration exact: 	R6H_SSSSS_OO     O_rad_out     Cs_H_out_2H     	deltaHrxn(T=298K) = 12.898513759611948 kcal/mol
-oct-OOJ4 = C8H17O2J(6)											3240000.0	1.22	16.6		0.0 0.0 0.0 //intra_H_migration exact: 	R6H_SSSSS_OO     O_rad_out     Cs_H_out_H/NonDeC     	deltaHrxn(T=298K) = 10.248866771805226 kcal/mol
-oct-OOJ4 = C8H17O2J(8)											6.76E10		0.21	18.5		0.0 0.0 0.0 //intra_H_migration exact: 	R5H_SSSS_OO(Cs/Cs)Cs     O_rad_out     Cs_H_out_H/NonDeC     	deltaHrxn(T=298K) = 10.248866771805226 kcal/mol
-oct-OOJ4 = C8H17O2J(9)											6.76E10		0.21	18.5		0.0 0.0 0.0 //intra_H_migration estimate: (Average:)	R5H_SSSS_OO(Cs/Cs)Cs     O_rad_out     Cs_H_out_H/(NonDeC/Cs)     	deltaHrxn(T=298K) = 10.24887481653479 kcal/mol
+//Intra H migration of ROOH species to QOOH
+oct-OOJ4 = C8H17O2J(5)											1107000.0	1.52	20.05		0.0 0.0 0.0	
+oct-OOJ4 = C8H17O2J(6)											3240000.0	1.22	16.6		0.0 0.0 0.0 
+oct-OOJ4 = C8H17O2J(8)											6.76E10		0.21	18.5		0.0 0.0 0.0 
+oct-OOJ4 = C8H17O2J(9)											6.76E10		0.21	18.5		0.0 0.0 0.0 
 oct-OOJ2 = C8H17O2J(10)											6.76E10		0.21	18.5		0.0 0.0 0.0
 oct-OOJ2 = C8H17O2J(11)											3240000		1.22	16.6		0.0 0.0 0.0
 oct-OOJ3 = C8H17O2J(16)											2.034E7		1.35	20.84		0.0 0.0 0.0
 oct-OOJ3 = C8H17O2J(17)											6.76E10		0.21	18.5		0.0 0.0 0.0
 oct-OOJ3 = C8H17O2J(18)											3240000		1.22	16.6		0.0 0.0 0.0
+
+//Addition of O2 to QOOH species to give HOOQOO
+O2JJ + C8H17O2J(5) = C8H17O4J(192)								4.52E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(6) = C8H17O4J(193)								7.54E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(8) = C8H17O4J(194)								7.54E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(9) = C8H17O4J(195)								7.54E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(10) = C8H17O4J(196)								7.54E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(11) = C8H17O4J(197)								7.54E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(16) = C8H17O4J(198)								4.52E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(17) = C8H17O4J(199)								7.54E12		0.0		0.0			0.0 0.0 0.0
+O2JJ + C8H17O2J(18) = C8H17O4J(200)								7.54E12		0.0		0.0			0.0 0.0 0.0
+
+//Isomerization and beta scission reactions of HOOQOO species
+C8H17O4J(193) = C8H16O3(10) + HOJ								1012.0		2.6		16.2		0.0 0.0 0.0	
+C8H17O4J(194) = C8H16O3(12) + HOJ								350.0		3.1		17.5		0.0 0.0 0.0
+C8H17O4J(195) = C8H16O3(13) + HOJ								350.0		3.1		17.5		0.0 0.0 0.0	
+C8H17O4J(196) = C8H16O3(14) + HOJ								350.0		3.1		17.5		0.0 0.0 0.0	
+C8H17O4J(197) = C8H16O3(15) + HOJ								1012.0		2.6		16.2		0.0 0.0 0.0	
+C8H17O4J(199) = C8H16O3(16) + HOJ								350.0		3.1		17.5		0.0 0.0 0.0	
+C8H17O4J(200) = C8H16O3(17) + HOJ								1012.0		2.6		16.2		0.0 0.0 0.0	
 
 
 
