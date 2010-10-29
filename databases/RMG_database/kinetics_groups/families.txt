@@ -16,7 +16,7 @@
 
 // No.  on/off  Forward reaction                     
 1       on      Cyclic_Ether_Formation
-2       on      intra_OH_migration
+2       off      intra_OH_migration
 3       on      H_Abstraction
 4       on      R_Addition_MultipleBond
 5       on      R_Recombination
