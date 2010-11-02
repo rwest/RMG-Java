@@ -18,7 +18,7 @@
 1       on      Cyclic_Ether_Formation
 2       off      intra_OH_migration
 3       on      H_Abstraction
-4       on      R_Addition_MultipleBond
+4       off      R_Addition_MultipleBond
 5       on      R_Recombination
 6       on      Disproportionation
 7       off     1,2_Insertion
@@ -41,5 +41,5 @@
 25		on		ROO_Termination
 25		on		Baeyer_Villiger
 26 		on		Korcek_rxn7
-27 		on		ROO_Propagation
+27 		off		ROO_Propagation
 28 		on		HOOQOO_beta_scission
