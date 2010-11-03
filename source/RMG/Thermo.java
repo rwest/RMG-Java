@@ -82,6 +82,17 @@ public static void main(String[] args) {
               systemTemp = new Temperature(tempValue,tempUnits);
               thermo_output += "System Temperature = " + systemTemp.getK() + "K" + "\n";
 
+            ReactionModelGenerator rmg = new ReactionModelGenerator();
+            line = ChemParser.readMeaningfulLine(data, true);
+            if (line.toLowerCase().startsWith("primarythermolibrary")) {
+            	rmg.readAndMakePTL(data);
+            }
+            else {
+            	System.err.println("ThermoDataEstimator: Could not locate the PrimaryThermoLibrary field." +
+            			"Line read was: " + line);
+            	System.exit(0);
+            }
+
         	  // Read in the ChemGraphs and compute their thermo, while there are ChemGraphs to read in
         	  line = ChemParser.readMeaningfulLine(data, true);
         	  while (line != null) {
