@@ -11,13 +11,14 @@ Reactions:
 //oct-OOH3 = C8H17OJ3 + HOJ											1.59E+08		0.0		26.00		0.0 0.0 0.0	
 //oct-OOH4 = C8H17OJ4 + HOJ											1.59E+08		0.0		26.00		0.0 0.0 0.0
 
-//oct-OOH2 = C8H17OJ2 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
-//oct-OOH3 = C8H17OJ3 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
-//oct-OOH4 = C8H17OJ4 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
+oct-OOH2 = C8H17OJ2 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
+oct-OOH3 = C8H17OJ3 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
+oct-OOH4 = C8H17OJ4 + HOJ											-0.395E+08		0.0		26.00		0.0 0.0 0.0	
 
-C8H17OJ2 + HOJ = oct-OOH2											2.0E13			0.0		0.0			0.0 0.0 0.0		
-C8H17OJ3 + HOJ = oct-OOH3											2.0E13			0.0		0.0			0.0 0.0 0.0	
-C8H17OJ4 + HOJ = oct-OOH4											2.0E13			0.0		0.0			0.0 0.0 0.0	
+//RMG rate of initiation reactions
+//C8H17OJ2 + HOJ = oct-OOH2											2.0E13			0.0		0.0			0.0 0.0 0.0		
+//C8H17OJ3 + HOJ = oct-OOH3											2.0E13			0.0		0.0			0.0 0.0 0.0	
+//C8H17OJ4 + HOJ = oct-OOH4											2.0E13			0.0		0.0			0.0 0.0 0.0	
 
 // All the rates used below are RMG estimates but located very late in the mechanism generation job or not at all. This is probably because of pruning and/or
 // higher tolerances. As a result, these are being forced into the core.

@@ -41,5 +41,5 @@
 25		on		ROO_Termination
 25		on		Baeyer_Villiger
 26 		on		Korcek_rxn7
-27 		on		ROO_Propagation
+27 		off		ROO_Propagation
 28 		on		HOOQOO_beta_scission
