@@ -109,15 +109,16 @@ public static void main(String[] args) {
           while (iter.hasNext()){
         	  Species spe = (Species)iter.next();
  
-            double A = spe.getChemGraph().getAbramData().A;
-            double B = spe.getChemGraph().getAbramData().B;
-            double E = spe.getChemGraph().getAbramData().E;
-            double S = spe.getChemGraph().getAbramData().S;
-            double L = spe.getChemGraph().getAbramData().L;
+            //double A = spe.getChemGraph().getAbramData().A;
+            //double B = spe.getChemGraph().getAbramData().B;
+            //double E = spe.getChemGraph().getAbramData().E;
+            //double S = spe.getChemGraph().getAbramData().S;
+            //double L = spe.getChemGraph().getAbramData().L;
 
-            double logK = -1.271 +(0.822*E)+(2.743*S)+(3.904*A)+(4.814*B)+(-0.213*L);
-            double deltaG = -2.303*8.314*298*logK/4180;
-            thermo_output += spe.getName() + "\t" + deltaG + "\n";
+            //double logK = -1.271 +(0.822*E)+(2.743*S)+(3.904*A)+(4.814*B)+(-0.213*L);
+            //double deltaG = -2.303*8.314*298*logK/4180;
+            double G_gas = spe.getChemGraph().calculateG(systemTemp);
+            thermo_output += spe.getName() + "\t" + G_gas + "\n";
 
           }
           
