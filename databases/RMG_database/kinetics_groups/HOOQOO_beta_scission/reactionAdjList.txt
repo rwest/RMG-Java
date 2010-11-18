@@ -2,16 +2,16 @@
 //                                                  //
 // the reaction adjList defining the reaction type  //
 //                                                  //
-// Created by Amrit Jalan, October 28, 2010         //
+// Created by Amrit Jalan, November 11, 2010         //
 //                                                  //
 //////////////////////////////////////////////////////
 
 
-// ROO Recombination: HOOQOO --> HOOQ=O + OH
+// HOOQOO beta_scission: HOOQOO --> HOOQ=O + OH
 
-HOOQOO -> RC(O)(CH2)nCH(R)OOH + OH
+HOOQOO -> HOOQ=O + OH
 
-reverse: none
+reverse: thermo_consistence
 
 Actions 1
 (1) BREAK_BOND		{*1,S,*5}

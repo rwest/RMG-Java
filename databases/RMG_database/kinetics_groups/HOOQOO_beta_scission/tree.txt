@@ -1,9 +1,21 @@
-// Created by Amrit Jalan, October 28, 2010
-// Details of the reactions/calculations may be obtained from Sandeep Sharma's paper (J. Phys. Chem. A 2010, 144, 5689-5701
-
+// Created by Amrit Jalan, November 11, 2010
+// Details of the reactions/calculations may be obtained from Sandeep Sharma's paper (J. Phys. Chem. A 2010, 144, 5689-5701)
 // beta scission of HOOQOO radicals
 
 L1: HOOQOO
-	L2: HOOCH(R)CH(R)OO
-	L2: HOOCH(R)CH2CH(R)OO
-	L2: HOOCH(R)CH2CH2CH(R)OO
+	L2: HOOQOO_14
+		L3: HOOCH(R)CH(R)OO
+		L3: HOOCH(R)CH2OO
+		L3: HOOCH2CH(R)OO
+		L3: HOOCH2CH2OO
+	L2: HOOQOO_15
+		L3: HOOCH(R)CH2CH(R)OO
+		L3: HOOCH(R)CH2CH2OO
+		L3: HOOCH2CH2CH(R)OO
+		L3: HOOCH2CH2CH2OO
+	L2: HOOQOO_16
+		L3: HOOCH(R)CH2CH2CH(R)OO
+		L3: HOOCH(R)CH2CH2CH2OO
+		L3: HOOCH2CH2CH2CH(R)OO
+		L3: HOOCH2CH2CH2CH2OO
+	
