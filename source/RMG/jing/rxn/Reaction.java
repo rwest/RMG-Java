@@ -208,6 +208,7 @@ public class Reaction {
 				rate += k.calculateRate(p_temperature,Hrxn);
 			else
 				rate += k.calculateRate(p_temperature);
+
 		}
 		return rate;
 	}
@@ -235,11 +236,8 @@ public class Reaction {
             double DiffFactor = 0.0;
 
             if (numReacts == 1 && numProds == 1) {
-
                 keff = rate;
-                
                 setKineticsComments(getComments() + "\t" + "Diffusive limits do not apply " + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-
                 return keff;
             }
             else if (numReacts == 1 && numProds == 2) {
@@ -250,13 +248,9 @@ public class Reaction {
                 double k_back_eff= k_back*k_back_diff/(k_back + k_back_diff);
 
                 keff = k_back_eff*calculateKeq(p_temperature);
-                //if (keff/k_chem < 0.2){
-                    //if (!getKinetics().getComment().endsWith("Diffusion limited")){
                 DiffFactor = keff/rate;
 
-                
                 setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-
                 return keff;
             }
             else if (numReacts == 2 && numProds == 1) {
@@ -267,19 +261,15 @@ public class Reaction {
                 double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
 
                 keff = k_forw_eff;
-                //if (keff/k_forw < 0.2){
-                    //if (!getKinetics().getComment().endsWith("Diffusion limited")){
                 DiffFactor = keff/rate;
 
                 setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-
                 return keff;
 
             }
             else if (numReacts == 2 && numProds == 2) {
-                //Temperature stdTemp = new Temperature(298, "K");
+                
                 double deltaHrxn = structure.calculateHrxn(p_temperature);
-                //setKineticsComments(getKinetics().getComment() + "Diffusion limited");
 
                 if (deltaHrxn<0){   // Forward reaction is exothermic hence the corresponding diffusion limit applies
                     double k_forw = rate;
@@ -287,8 +277,6 @@ public class Reaction {
                     double k_forw_diff = calculatediff(reactantsInForwRxn);
                     double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
                     keff = k_forw_eff;
-                    //if (keff/k_forw < 0.2){
-                        //if (!getKinetics().getComment().endsWith("Diffusion limited")) {
                     DiffFactor = keff/rate;
                     
                     setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
@@ -301,8 +289,6 @@ public class Reaction {
                     double k_back_diff= calculatediff(reactantsInBackRxn);
                     double k_back_eff= k_back*k_back_diff/(k_back + k_back_diff);
                     keff = k_back_eff*calculateKeq(p_temperature);
-                    //if (keff/k_chem < 0.2){
-                        //if (!getKinetics().getComment().endsWith("Diffusion limited")) {
                     DiffFactor = keff/rate;
                     
                     setKineticsComments(getComments() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
@@ -319,8 +305,6 @@ public class Reaction {
                 double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
 
                 keff = k_forw_eff;
-                //if (keff/k_forw < 0.2){
-                    //if (!getKinetics().getComment().endsWith("Diffusion limited")){
                 DiffFactor = keff/rate;
 
                 setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
@@ -330,10 +314,68 @@ public class Reaction {
             }
 
         }
-//        for (int numKinetics=0; numKinetics<k_All.length; ++numKinetics) {
-//        	setKineticsComments(k_All[numKinetics].getComment() + "\t" + "Keq(T=298K) =" + calculateKeq(p_temperature),numKinetics);
-//        }
-      	return rate;
+
+        /* Amrit Jalan, November 29, 2010
+         * Solvent effects on rates of H-Abstraction and beta-scission reactions using correlations proposed in literature
+         * These are being hard-coded for illustrative models only. A more extensible form of the databases for solution phase RMG is still under development
+         * The following function corrects the rate of forward rate constants for all H_Abstractions using the correlation proposed by Snelgrove et al. and
+         * for the beta_scission family (reverse of R_Addition_Multiplebond) using the correlation of Tsentalovich et al.
+         *
+         */
+
+        if (ReactionModelGenerator.getUseSolvation()) {
+
+             // Obtain the name of the reaction class
+            String RxnFamily = getReactionTemplate().getName();
+
+            //Apply corrections to the rate depending on reaction family
+            if (RxnFamily.equals("H_Abstraction")){
+                double solv_correction;
+                double A_XH = 0;
+                double B_solvent = 0.14;
+
+                // Get the list of reactants for H_Abstraction
+                LinkedList react_list = getReactantList();
+                ListIterator iter = getReactants();
+                Species rxt1 = (Species) react_list.get(0);
+                Species rxt2 = (Species) react_list.get(1);
+
+                // Determine the radical status of both reactants
+                boolean rad1; boolean rad2;
+                rad1 = rxt1.isRadical();
+                rad2 = rxt2.isRadical();
+
+                /* Amrit Jalan, November 30, 2010
+                 We are restricting the use of Snelgrove's correlation to reactions of the type XH + Y_rad_birad only i.e.
+                 only for H-Abstraction from a closed shell species.
+                 */
+
+                // If rxt1 is a radical then we use the Abraham A parameter of rxt2
+                if (rad1 && !rad2){
+                    A_XH = rxt2.getChemGraph().getAbramData().A;
+                }
+
+                // If rxt2 is a radical then we use the Abraham A parameter of rxt1
+                if (rad2 && !rad1){
+                    A_XH = rxt1.getChemGraph().getAbramData().A;
+                }
+
+                // Correlation from the work of Snelgrove et al.
+                double log_correction = -8.3*A_XH*B_solvent;
+                solv_correction = Math.pow(10, log_correction);
+                rate *= solv_correction;
+
+                setKineticsComments(getComments() + "\t"  + "Solvent factor = " + solv_correction,0);
+
+            }
+
+//            if (RxnFamily.equals("R_Addition_MultipleBond")){
+//                double solv_correction = 10;
+//                rate *= solv_correction;
+//            }
+		}
+
+       return rate;
 
 
 //  		Iterator kineticIter = getAllKinetics().iterator();

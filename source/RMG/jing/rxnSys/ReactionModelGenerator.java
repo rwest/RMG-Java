@@ -97,6 +97,10 @@ public class ReactionModelGenerator {
     protected static boolean useDiffusion;
     //
 
+    // Added by AJ on November 29, 2010
+    protected static boolean useSolvation;
+    //
+
     protected SeedMechanism seedMechanism = null;
     protected PrimaryThermoLibrary primaryThermoLibrary;
     protected PrimaryTransportLibrary primaryTransportLibrary;
@@ -427,8 +431,10 @@ public class ReactionModelGenerator {
         		String name = st.nextToken();
         		String solvationOnOff = st.nextToken().toLowerCase();
         		if (solvationOnOff.equals("on")) {
-        			Species.useSolvation = true;
+        			setUseSolvation(true);
+                    Species.useSolvation = true;
         		} else if (solvationOnOff.equals("off")) {
+                    setUseSolvation(false);
         			Species.useSolvation = false;
         		}
         		else throw new InvalidSymbolException("condition.txt: Unknown solvation flag: " + solvationOnOff);
@@ -2940,8 +2946,16 @@ public class ReactionModelGenerator {
     	return useDiffusion;
     }
 
+    public static boolean getUseSolvation() {
+        return useSolvation;
+    }
+
     public void setUseDiffusion(Boolean p_boolean) {
     	useDiffusion = p_boolean;
+    }
+
+    public void setUseSolvation(Boolean p_boolean) {
+    	useSolvation = p_boolean;
     }
 
     public void setTimeStep(ReactionTime p_timeStep) {
