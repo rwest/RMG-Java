@@ -222,99 +222,6 @@ public class Reaction {
 				rate += k.calculateRate(p_temperature);
 		}
 
-    /* Diffusion limits added by AJ on July 12, 2010
-     * Requires correction in the forward direction only, reverse reaction corrects itself
-     * If ReactionModelGenerator.useDiffusion is true (solvation is on)
-     * compute kd and return keff
-     */
-
-        if (ReactionModelGenerator.getUseDiffusion()) {
-
-            int numReacts = structure.getReactantNumber();
-            int numProds = structure.getProductNumber();
-            double keff = 0.0;
-            double DiffFactor = 0.0;
-
-            if (numReacts == 1 && numProds == 1) {
-                keff = rate;
-                setKineticsComments(getComments() + "\t" + "Diffusive limits do not apply " + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-                return keff;
-            }
-            else if (numReacts == 1 && numProds == 2) {
-
-                double k_back = rate / calculateKeq(p_temperature);
-                LinkedList reactantsInBackRxn = structure.products;
-                double k_back_diff= calculatediff(reactantsInBackRxn);
-                double k_back_eff= k_back*k_back_diff/(k_back + k_back_diff);
-
-                keff = k_back_eff*calculateKeq(p_temperature);
-                DiffFactor = keff/rate;
-
-                setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-                return keff;
-            }
-            else if (numReacts == 2 && numProds == 1) {
-
-                double k_forw = rate;
-                LinkedList reactantsInForwRxn = structure.reactants;
-                double k_forw_diff = calculatediff(reactantsInForwRxn);
-                double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
-
-                keff = k_forw_eff;
-                DiffFactor = keff/rate;
-
-                setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-                return keff;
-
-            }
-            else if (numReacts == 2 && numProds == 2) {
-                
-                double deltaHrxn = structure.calculateHrxn(p_temperature);
-
-                if (deltaHrxn<0){   // Forward reaction is exothermic hence the corresponding diffusion limit applies
-                    double k_forw = rate;
-                    LinkedList reactantsInForwRxn = structure.reactants;
-                    double k_forw_diff = calculatediff(reactantsInForwRxn);
-                    double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
-                    keff = k_forw_eff;
-                    DiffFactor = keff/rate;
-                    
-                    setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-                    
-                    return keff;
-                }
-                else if (deltaHrxn>0){ // Reverse reaction is exothermic and the corresponding diffusion limit should be used
-                    double k_back = rate / calculateKeq(p_temperature);
-                    LinkedList reactantsInBackRxn = structure.products;
-                    double k_back_diff= calculatediff(reactantsInBackRxn);
-                    double k_back_eff= k_back*k_back_diff/(k_back + k_back_diff);
-                    keff = k_back_eff*calculateKeq(p_temperature);
-                    DiffFactor = keff/rate;
-                    
-                    setKineticsComments(getComments() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-
-                    return keff;
-                }
-
-            }
-                else if (numReacts == 2 && numProds == 3) {
-
-                double k_forw = rate;
-                LinkedList reactantsInForwRxn = structure.reactants;
-                double k_forw_diff = calculatediff(reactantsInForwRxn);
-                double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
-
-                keff = k_forw_eff;
-                DiffFactor = keff/rate;
-
-                setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
-
-                return keff;
-
-            }
-
-        }
-
         /* Amrit Jalan, November 29, 2010
          * Solvent effects on rates of H-Abstraction and beta-scission reactions using correlations proposed in literature
          * These are being hard-coded for illustrative models only. A more extensible form of the databases for solution phase RMG is still under development
@@ -366,28 +273,111 @@ public class Reaction {
                 rate *= solv_correction;
 
                 setKineticsComments(getComments() + "\t"  + "Solvent factor = " + solv_correction,0);
+                
 
             }
 
-//            if (RxnFamily.equals("R_Addition_MultipleBond")){
-//                double solv_correction = 10;
-//                rate *= solv_correction;
-//            }
 		}
 
+    /* Diffusion limits added by AJ on July 12, 2010
+     * Requires correction in the forward direction only, reverse reaction corrects itself
+     * If ReactionModelGenerator.useDiffusion is true (solvation is on)
+     * compute kd and return keff
+     */
+
+        if (ReactionModelGenerator.getUseDiffusion()) {
+
+            int numReacts = structure.getReactantNumber();
+            int numProds = structure.getProductNumber();
+            double keff = 0.0;
+            double DiffFactor = 0.0;
+
+            if (numReacts == 1 && numProds == 1) {
+                keff = rate;
+                setKineticsComments(k_All[0].getComment() + "\t" + "Diffusive limits do not apply " + "\t" + "Keq =" + calculateKeq(p_temperature),0);
+                
+                rate = keff;
+            }
+            else if (numReacts == 1 && numProds == 2) {
+
+                double k_back = rate / calculateKeq(p_temperature);
+                LinkedList reactantsInBackRxn = structure.products;
+                double k_back_diff= calculatediff(reactantsInBackRxn);
+                double k_back_eff= k_back*k_back_diff/(k_back + k_back_diff);
+
+                keff = k_back_eff*calculateKeq(p_temperature);
+                DiffFactor = keff/rate;
+
+                setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
+                
+                rate = keff;
+            }
+            else if (numReacts == 2 && numProds == 1) {
+
+                double k_forw = rate;
+                LinkedList reactantsInForwRxn = structure.reactants;
+                double k_forw_diff = calculatediff(reactantsInForwRxn);
+                double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
+
+                keff = k_forw_eff;
+                DiffFactor = keff/rate;
+
+                setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
+                
+                rate = keff;
+
+            }
+            else if (numReacts == 2 && numProds == 2) {
+                
+                double deltaHrxn = structure.calculateHrxn(p_temperature);
+
+                if (deltaHrxn<0){   // Forward reaction is exothermic hence the corresponding diffusion limit applies
+                    double k_forw = rate;
+                    LinkedList reactantsInForwRxn = structure.reactants;
+                    double k_forw_diff = calculatediff(reactantsInForwRxn);
+                    double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
+                    keff = k_forw_eff;
+                    DiffFactor = keff/rate;
+                    
+                    setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
+                                        
+                    rate = keff;
+                }
+                else if (deltaHrxn>0){ // Reverse reaction is exothermic and the corresponding diffusion limit should be used
+                    double k_back = rate / calculateKeq(p_temperature);
+                    LinkedList reactantsInBackRxn = structure.products;
+                    double k_back_diff= calculatediff(reactantsInBackRxn);
+                    double k_back_eff= k_back*k_back_diff/(k_back + k_back_diff);
+                    keff = k_back_eff*calculateKeq(p_temperature);
+                    DiffFactor = keff/rate;
+
+                    String P = k_All[0].getComment();
+                    setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
+                    
+                    rate = keff;
+                }
+
+            }
+                else if (numReacts == 2 && numProds == 3) {
+
+                double k_forw = rate;
+                LinkedList reactantsInForwRxn = structure.reactants;
+                double k_forw_diff = calculatediff(reactantsInForwRxn);
+                double k_forw_eff = k_forw*k_forw_diff/(k_forw + k_forw_diff);
+
+                keff = k_forw_eff;
+                DiffFactor = keff/rate;
+
+
+                setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "Keq =" + calculateKeq(p_temperature),0);
+                
+                rate = keff;
+
+            }
+
+        }
        return rate;
 
-
-//  		Iterator kineticIter = getAllKinetics().iterator();
-//      	while (kineticIter.hasNext()){
-//      		Kinetics k = (Kinetics)kineticIter.next();
-//			if (k instanceof ArrheniusEPKinetics)
-//				rate = rate + k.calculateRate(p_temperature,Hrxn);
-//			else
-//				rate = rate + k.calculateRate(p_temperature);
-//      	}
-//
-//      	return rate;
   	}
   	else if (isBackward()){
   		Reaction r = getReverseReaction();
