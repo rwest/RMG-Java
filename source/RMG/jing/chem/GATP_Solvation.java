@@ -81,17 +81,26 @@ public class GATP_Solvation implements GeneralSolvationGAPP {
 		double A=result_Abraham.A;
         double V=result_Abraham.V;
 		
+////        Manually specified solvent descriptors for free energy calculation
+//		 (constants here are for dry decane, from from M.H. Abraham et al. / J. Chromatogr. A 1037 (2004) 29–47 )
+//        double c_g = 0.156;
+//        double s_g = 0;
+//        double b_g = 0;
+//        double e_g = -0.143;
+//        double l_g = 0.989;
+//        double a_g = 0;
+
         //Manually specified solvent descriptors for free energy calculation
 		// (constants here are for dry decane, from from M.H. Abraham et al. / J. Chromatogr. A 1037 (2004) 29–47 )
-        double c_g = 0.156;
-        double s_g = 0;
-        double b_g = 0;
-        double e_g = -0.143;
-        double l_g = 0.989;
-        double a_g = 0;
-		
+        double c_g = -0.12;
+        double s_g = -0.203;
+        double b_g = 0.56;
+        double e_g = 3.56;
+        double l_g = 0.702;
+        double a_g = 0.939;
 
-        double logK = c_g + s_g*S + b_g*B + e_g*E + l_g*L + a_g*A;    // Implementation of Abraham Model for calculation of partition coefficient
+
+		double logK = c_g + s_g*S + b_g*B + e_g*E + l_g*L + a_g*A;    // Implementation of Abraham Model for calculation of partition coefficient
         double deltaG0 = -8.314*298*logK;                             // J/mol
         deltaG0 = deltaG0/4180;                                       // conversion from kJ/mol to kcal/mol
 		// System.out.println("The free energy of solvation in decane at 298K w/o reference state corrections  = " + deltaG0_decane +" J/mol for " );
@@ -99,14 +108,23 @@ public class GATP_Solvation implements GeneralSolvationGAPP {
     /* AJ 16JULY 2010 (Mintz method for calculation of solution phase enthalpy
      */
 
+////         Manually specified solvent descriptors for enthalpy calculations
+//		 (constants here are for alkanes, from from C. Mintz et al. / J. Chromatogr. A 1037 (2004) 29–47 )
+//        double c_h = -6.708;
+//        double s_h = 0;
+//        double b_h = 0;
+//        double e_h = 2.999;
+//        double l_h = -9.279;
+//        double a_h = 0;
+
         // Manually specified solvent descriptors for enthalpy calculations
-		// (constants here are for alkanes, from from C. Mintz et al. / J. Chromatogr. A 1037 (2004) 29–47 )
-        double c_h = -6.708;
-        double s_h = 0;
-        double b_h = 0;
-        double e_h = 2.999;
-        double l_h = -9.279;
-        double a_h = 0;
+		// (constants here are for 1-octanol, from from C. Mintz et al. / QSAR & Combinatorial Science Volume 27, Issue 5, pages 627–635, May 2008 )
+        double c_h = -6.49;
+        double s_h = -1.04;
+        double b_h = 5.89;
+        double e_h = -53.99;
+        double l_h = -8.99;
+        double a_h = -9.18;
 
         double deltaH0 = c_g + s_g*S + b_g*B + e_g*E + l_g*L + a_g*A;    // Implementation of Mintz model for calculation of solution phase enthalpy (kJ/mol)
         deltaH0=deltaH0/4.18;                                            // Conversion from kJ/mol to kcal/mol

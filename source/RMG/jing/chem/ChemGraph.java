@@ -1893,11 +1893,13 @@ return sn;
 	 */
     public double getDiffusivity() {
 		double speRad=getRadius();
-		double solventViscosity = 0.473*Math.pow(10,-3);
-		double diffusivity;
-		Temperature sysTemp = ReactionModelGenerator.getTemp4BestKinetics();
+		        
+        Temperature sysTemp = ReactionModelGenerator.getTemp4BestKinetics();
+        double solventViscosity = 9.65e-6 * Math.exp((811.75/sysTemp.getK()+(346920/sysTemp.getK()/sysTemp.getK())));  //Viscosity of octanol at a function of temperature. Obtained from Matsuo and Makita (INTERNATIONAL JOURNAL OF THERMOPHYSICSVolume 10, Number 4, 833-843, DOI: 10.1007/BF00514479)
+		//double solventViscosity = 0.473*Math.pow(10,-3);  //Viscosity of liquid decane
+        
 		double denom = 132*solventViscosity*speRad/7;
-		diffusivity = 1.381*500* Math.pow(10,-23)/denom;  //sysTemp.getK()
+		double diffusivity = 1.381*sysTemp.getK()* Math.pow(10,-23)/denom;  //sysTemp.getK()
 		return diffusivity;
     }
     
