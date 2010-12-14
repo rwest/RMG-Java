@@ -230,7 +230,9 @@ public class Reaction {
          *
          */
 
-        if (ReactionModelGenerator.getUseSolvation()) {
+        if (!getKineticsSource(0).startsWith("Seed Mechanism")){
+
+            if (ReactionModelGenerator.getUseSolvation()) {
 
              // Obtain the name of the reaction class
             String RxnFamily = getReactionTemplate().getName();
@@ -278,6 +280,7 @@ public class Reaction {
             }
 
 		}
+    }
 
     /* Diffusion limits added by AJ on July 12, 2010
      * Requires correction in the forward direction only, reverse reaction corrects itself
