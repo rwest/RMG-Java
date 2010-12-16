@@ -91,7 +91,7 @@ public class GATP_Solvation implements GeneralSolvationGAPP {
 //        double a_g = 0;
 
         //Manually specified solvent descriptors for free energy calculation
-		// (constants here are for dry decane, from from M.H. Abraham et al. / J. Chromatogr. A 1037 (2004) 29–47 )
+		// (constants here are for octanol, from from M.H. Abraham et al. / J. Chromatogr. A 1037 (2004) 29–47 )
         double c_g = -0.12;
         double s_g = -0.203;
         double b_g = 0.56;
