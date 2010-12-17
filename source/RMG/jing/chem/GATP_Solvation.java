@@ -99,9 +99,8 @@ public class GATP_Solvation implements GeneralSolvationGAPP {
         double b_g = 0.702;
         double l_g = 0.939;
 
-
 		double logK = c_g + s_g*S + b_g*B + e_g*E + l_g*L + a_g*A;    // Implementation of Abraham Model for calculation of partition coefficient
-        double deltaG0 = -8.314*298*logK;                             // J/mol
+        double deltaG0 = -8.314*298*2.303*logK;                             // J/mol
         deltaG0 = deltaG0/4180;                                       // conversion from kJ/mol to kcal/mol
 		// System.out.println("The free energy of solvation in decane at 298K w/o reference state corrections  = " + deltaG0_decane +" J/mol for " );
 
