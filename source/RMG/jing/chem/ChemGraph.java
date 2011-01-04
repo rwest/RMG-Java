@@ -1887,7 +1887,7 @@ return sn;
         ri = Math.pow(ri3,0.333)*0.01;   //Returns the solute radius in 'm'
 //        double Ri=getUnifacData().R;
 //        ri=3.18*Math.pow(Ri,0.333)*Math.pow(10,-10);   // From Koojiman Ind. Eng. Chem. Res 2002, 41 3326-3328
-//        return ri;
+        return ri;
 		
     }
 	
