@@ -1881,9 +1881,13 @@ return sn;
             }
         }
 		
-        double Ri=getUnifacData().R;
-        ri=3.18*Math.pow(Ri,0.333)*Math.pow(10,-10);   // From Koojiman Ind. Eng. Chem. Res 2002, 41 3326-3328
-        return ri;
+        double solute_V = getAbramData().V;  //Units: cm3/100/mol
+        double volume = solute_V*100/6.023/1e23; //Units: cm3/molecule
+        double ri3 = volume*21/88;       // Units: cm3
+        ri = Math.pow(ri3,0.333)*0.01;   //Returns the solute radius in 'm'
+//        double Ri=getUnifacData().R;
+//        ri=3.18*Math.pow(Ri,0.333)*Math.pow(10,-10);   // From Koojiman Ind. Eng. Chem. Res 2002, 41 3326-3328
+//        return ri;
 		
     }
 	
