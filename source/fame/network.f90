@@ -308,16 +308,20 @@ contains
         integer linear, symm
         character(len=128) msg
 
-        integer i
+        integer Nvib, Nrot, Nhind, i
+
+        Nvib = size(spec%spectral%vibFreq)
+        Nrot = size(spec%spectral%rotFreq)
+        Nhind = size(spec%spectral%hindFreq)
 
         ! Prepare inputs for density of states function
-        do i = 1, size(spec%spectral%vibFreq)
+        do i = 1, Nvib
             vib(i) = spec%spectral%vibFreq(i)
         end do
-        do i = 1, size(spec%spectral%rotFreq)
+        do i = 1, Nrot
             rot(i) = spec%spectral%rotFreq(i)
         end do
-        do i = 1, size(spec%spectral%hindFreq)
+        do i = 1, Nhind
             hind(i,1) = spec%spectral%hindFreq(i)
             hind(i,2) = spec%spectral%hindBarrier(i)
         end do
@@ -328,8 +332,8 @@ contains
         symm = spec%spectral%symmNum
 
         ! Calculate the density of states
-        call densityOfStates(Elist, nGrains, vib, size(vib), rot, size(rot), &
-            hind, size(hind), symm, linear, densStates, msg)
+        call densityOfStates(Elist, nGrains, vib, Nvib, rot, Nrot, &
+            hind, Nhind, symm, linear, densStates, msg)
 
     end subroutine
 
@@ -543,7 +547,7 @@ contains
         do r = 1, nGrains
             if (isom%E0 < Elist(r) .and. index == 0) index = r
         end do
-        isom%densStates(index:nGrains) = densStates(1:nGrains-index)
+        isom%densStates(index:nGrains) = densStates(1:nGrains-index+1)
 
     end subroutine
 
@@ -988,7 +992,7 @@ contains
         real(8) dE, dEdown
         character(len=128) :: msg
 
-        integer i, j, r
+        integer i, j, r, s
 
         write(1,*) 'Applying method at', T, 'K,', P/1e5, 'bar...'
 
@@ -1000,12 +1004,19 @@ contains
             densStates(i,:) = net%isomers(i)%densStates * dE / net%isomers(i)%Q
         end do
 
-
         ! Active-state energy of each isomer
         do i = 1, nIsom+nReac+nProd
             Eres(i) = isomer_getActiveSpaceEnergy(i, net%reactions)
         end do
 
+        ! Zero collision matrix    
+        do i = 1, nIsom
+            do r = 1, Ngrains
+                do s = 1, Ngrains
+                    Mcoll(i,r,s) = 0.0
+                end do
+            end do
+        end do
         ! Zero rate coefficient matrices
         do r = 1, nGrains
             do i = 1, nIsom
