@@ -252,7 +252,7 @@ public class ReactionTemplate {
   }
   
   //## operation findClosestRateConstant(Collection) 
-  public Kinetics[] findClosestRateConstant(LinkedList p_matchedPathSet) {
+  public Kinetics findClosestRateConstant(LinkedList p_matchedPathSet) {
       //#[ operation findClosestRateConstant(Collection) 
       LinkedHashSet exactTreeNode = new LinkedHashSet();
       LinkedHashSet exactKey = new LinkedHashSet();
@@ -277,10 +277,7 @@ public class ReactionTemplate {
       KineticsTemplate kt = kineticsTemplateLibrary.getKineticsTemplate(exactKey);
       int rNum = getReactantNumber();
       if (kt!=null) {
-    	  Kinetics[] k_closest = new Kinetics[1];
-    	  k_closest[0] = kt.kinetics;
-    	  return k_closest;
-//    	  return kt.kinetics;
+    	  return kt.kinetics;
       }
       
       Collection allPossibleTreeNodeSet = MathTool.expand(p_matchedPathSet.iterator());
@@ -319,20 +316,12 @@ public class ReactionTemplate {
       
       // get averaged k with the closest distance
       Kinetics newK = ArrheniusKinetics.average(bestKineticsSet);
-      //KineticsTemplate newKT = kineticsTemplateLibrary.addKinetics(exactKey, newK);
-      //RateConstant rc = new RateConstant(newKT, bestKineticsTemplateSet, closest);
-      Kinetics[] k_closest = new Kinetics[1];
-      k_closest[0] = newK;
-      return k_closest;
-//      return newK; 
+      return newK; 
       
-      
-      
-      //#]
   }
   
   //## operation findExactRateConstant(Collection) 
-  public Kinetics[] findExactRateConstant(Collection p_matchedPathSet) {
+  public Kinetics findExactRateConstant(Collection p_matchedPathSet) {
       //#[ operation findExactRateConstant(Collection) \
 		
       LinkedHashSet fgc = new LinkedHashSet();
@@ -349,14 +338,7 @@ public class ReactionTemplate {
       KineticsTemplate kt = kineticsTemplateLibrary.getKineticsTemplate(fgc);
       
       if (kt==null) return null;
-      else {
-			//kt.kinetics.setSource(kt.kinetics.toChemkinString());
-    	  Kinetics[] k_exact = new Kinetics[1];
-    	  k_exact[0] = kt.kinetics;
-    	  return k_exact;
-//			return kt.kinetics;
-      }
-
+      else return kt.kinetics;
   }
   
   /**
@@ -495,20 +477,29 @@ public class ReactionTemplate {
       }
       
       if (p_structure.isForward()) {
+		  Kinetics kf = null;
 		  LinkedList fg = structureTemplate.getMatchedFunctionalGroup(reactants);
 		  if (fg == null) {
 			  Global.RT_findRateConstant += (System.currentTimeMillis()-pT)/1000/60;
 			  return null;
 		  }
 		  String comments = getKineticsComments(fg);
-		  k = findExactRateConstant(fg);
-		  if (k==null) {
-			  k = findClosestRateConstant(fg);
-			  k[0].setSource(name + " estimate: (" + k[0].getSource() + ")");
+		  kf = findExactRateConstant(fg);
+		  if (kf==null) {
+			  kf = findClosestRateConstant(fg);
+			  kf.setSource(name + " estimate: (" + kf.getSource() + ")");
 		  }
-		  else k[0].setSource(name  + " exact: ");
-		  k[0].setComments(comments);
+		  else kf.setSource(name  + " exact: ");
+		  kf.setComments(comments);
 		  Global.RT_findRateConstant += (System.currentTimeMillis()-pT)/1000/60;
+		  
+		  // fix rate constant here
+		  double Hrxn = p_structure.calculateHrxn(new Temperature(298, "K"));
+		  ArrheniusKinetics k_fixed = kf.fixBarrier(Hrxn);
+		  
+		  // We must return a list (with one element).
+		  k = new Kinetics[1];
+		  k[0] = k_fixed;
 		  return k;
       }
       else {
@@ -614,20 +605,22 @@ public class ReactionTemplate {
   }
 
   private String getKineticsComments(Collection p_matchedPathSet) {
-		StringBuilder comment = new StringBuilder();
-		for (Iterator iter = p_matchedPathSet.iterator(); iter.hasNext();) {
+	  StringBuilder comment = new StringBuilder("[ ");
+	  for (Iterator iter = p_matchedPathSet.iterator(); iter.hasNext();) {
       	Stack s = (Stack)iter.next();
       	HierarchyTreeNode node = (HierarchyTreeNode)s.peek();
-      	if (node.hasDummyChild()) comment.append((node.getDummyChild().getName()+"    "));
+      	if (node.hasDummyChild()) comment.append((node.getDummyChild().getName() + " , "));
       	else {
       		if (node.getElement() instanceof FunctionalGroup)
-      			comment.append(((FunctionalGroup)node.getElement()).getName() + "     ");
+      			comment.append(((FunctionalGroup)node.getElement()).getName() + " , ");
       		else
-      			comment.append(((FunctionalGroupCollection)node.getElement()).getName() + "     ");
+      			comment.append(((FunctionalGroupCollection)node.getElement()).getName() + " , ");
       	}
-      }
-		return comment.toString();
-	}
+	  }
+	  comment.delete(comment.length()-2, comment.length()); // remove the final comma
+	  comment.append("]");
+	  return comment.toString();
+  }
 
 	//## operation findUnion(String,HashMap) 
   private void findUnion(String p_name, HashMap p_unRead) {
@@ -1490,22 +1483,8 @@ public class ReactionTemplate {
               	}
                   else fgc.add(fg);
       		}
-      		// read in the
-      		/*
-      		 * Commented out by MRH 15-Jun-2009
-      		 * 	We used to pass only the TRange, modified Arrhenius parameters,
-      		 * 		their uncertainties, and the data's rank to parseArrheniusKinetics.
-      		 * 		Now, pass the entire line of data, so that any comments
-      		 * 		written after the rank may be read in 
-      		 */
-//              String kinetics = token.nextToken();
-//              while (token.hasMoreTokens()) {
-//              	kinetics = kinetics + " " + token.nextToken();
-//              }
+      		// read in the kinetics
       		Kinetics k;
-//      		if (format.equals("Arrhenius")) k = ChemParser.parseArrheniusKinetics(kinetics);
-//      		else if (format.equals("Arrhenius_EP")) k = ChemParser.parseArrheniusEPKinetics(kinetics);
-//      		else throw new InvalidKineticsFormatException("Invalid rate constant format: " + kinetics);
       		if (format.equals("Arrhenius")) k = ChemParser.parseArrheniusKinetics(line,keyNum);
       		else if (format.equals("Arrhenius_EP")) k = ChemParser.parseArrheniusEPKinetics(line,keyNum);
       		else throw new InvalidKineticsFormatException("Invalid rate constant format: " + line);

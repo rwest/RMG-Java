@@ -204,21 +204,18 @@ public class Reaction {
 		Kinetics[] k_All = kinetics;
 		for (int numKinetics=0; numKinetics<kinetics.length; numKinetics++) {
 			Kinetics k = k_All[numKinetics];
-			if (k instanceof ArrheniusEPKinetics)
-				rate += k.calculateRate(p_temperature,Hrxn);
-			else
-				rate += k.calculateRate(p_temperature);
+			rate += k.calculateRate(p_temperature,Hrxn);
 		}
 		return rate;
 	}
 	else if (isForward()){
 		Kinetics[] k_All = kinetics;
 		for (int numKinetics=0; numKinetics<kinetics.length; numKinetics++) {
-			Kinetics k = k_All[numKinetics].multiply(structure.redundancy);
-			if (k instanceof ArrheniusEPKinetics)
-				rate += k.calculateRate(p_temperature,Hrxn);
-			else
-				rate += k.calculateRate(p_temperature);
+			Kinetics k = k_All[numKinetics];
+			if ((int)structure.redundancy != 1){
+				k = k.multiply(structure.redundancy);
+			}
+			rate += k.calculateRate(p_temperature,Hrxn);
 		}
 
     /* Diffusion limits added by AJ on July 12, 2010
@@ -335,17 +332,6 @@ public class Reaction {
 //        }
       	return rate;
 
-
-//  		Iterator kineticIter = getAllKinetics().iterator();
-//      	while (kineticIter.hasNext()){
-//      		Kinetics k = (Kinetics)kineticIter.next();
-//			if (k instanceof ArrheniusEPKinetics)
-//				rate = rate + k.calculateRate(p_temperature,Hrxn);
-//			else
-//				rate = rate + k.calculateRate(p_temperature);
-//      	}
-//
-//      	return rate;
   	}
   	else if (isBackward()){
   		Reaction r = getReverseReaction();
@@ -355,9 +341,9 @@ public class Reaction {
   	else {
   		throw new InvalidReactionDirectionException();
   	}
-
   }
-
+	
+	//## operation calculatediff(LinkedList)
     public double calculatediff(LinkedList p_struct) {
 
       if (p_struct.size()!=2){
@@ -630,8 +616,6 @@ public class Reaction {
       //#[ operation contains(Species)
       if (containsAsReactant(p_species) || containsAsProduct(p_species)) return true;
       else return false;
-
-
       //#]
   }
 
@@ -671,17 +655,11 @@ public class Reaction {
   public boolean equals(Object p_reaction) {
       //#[ operation equals(Object)
       if (this == p_reaction) return true;
-
       if (!(p_reaction instanceof Reaction)) return false;
-
       Reaction r = (Reaction)p_reaction;
-
       if (!getStructure().equals(r.getStructure())) return false;
-
       return true;
 
-
-      //#]
   }
 
 /*  
@@ -912,9 +890,7 @@ public class Reaction {
       	fittedReverseKinetics = null;
       }
       else {
-    //double temp = 715;
-    //    double temp = 298.15; //10/29/07 gmagoon: Sandeep made change to temp = 298 on his computer locally
-    //    double temp = 1350; //11/6/07 gmagoon:**** changed to actual temperature in my condition file to create agreement with old version; apparently, choice of temp has large effect; //11/9/07 gmagoon: commented out
+		  //double temp = 715;
           double temp = 298.15; //11/9/07 gmagoon: restored use of 298.15 per discussion with Sandeep
           //double temp = Global.temperature.getK();
     	Kinetics[] k = getKinetics();
@@ -1030,6 +1006,7 @@ public class Reaction {
 	  }
       if (isForward()) {
       	int red = structure.getRedundancy();
+		  if (red==1) return kinetics; // Don't waste time multiplying by 1
       	Kinetics[] kinetics2return = new Kinetics[kinetics.length];
       	for (int numKinetics=0; numKinetics<kinetics.length; ++numKinetics) {
       		kinetics2return[numKinetics] = kinetics[numKinetics].multiply(red);
@@ -1051,9 +1028,6 @@ public class Reaction {
       else 
 		  throw new InvalidReactionDirectionException(structure.toString());
 
-
-
-      //#]
   }
 
   public void setKineticsComments(String p_string, int num_k){
@@ -1362,7 +1336,7 @@ public class Reaction {
 	  if (ChemkinString != null)
 		  return ChemkinString;
 	  	StringBuilder result = new StringBuilder();
-      	StringBuilder strucString = getStructure().toChemkinString(hasReverseReaction());
+      	String strucString = String.format("%-52s",getStructure().toChemkinString(hasReverseReaction()));
 		Temperature stdtemp = new Temperature(298,"K");
 		double Hrxn = calculateHrxn(stdtemp);
 		Kinetics[] allKinetics = getKinetics();
@@ -1404,7 +1378,7 @@ public class Reaction {
 		 * 		when writing the Restart files, to account for this bug.
 		 */
 		
-		String result = getStructure().toRestartString(hasReverseReaction()).toString(); //+ " "+getStructure().direction + " "+getStructure().redundancy;
+		String result = String.format("%-52s",getStructure().toRestartString(hasReverseReaction())); //+ " "+getStructure().direction + " "+getStructure().redundancy;
 		// MRH 18Jan2010: Restart files do not look for direction/redundancy
 		/*
 		 * MRH 14Feb2010: Handle reactions with multiple kinetics
