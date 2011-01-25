@@ -345,7 +345,14 @@ Arrhenius_EP
 487.	C/H2/NonDeC	O2b					378-433	3.16E+14	0		0		43.30	0		0		0		0		4		ET Denisov, LN Denisova. Int J Chem Kinet 8:123-130, 1975 for BuCH2(CH-H)Me in benzene
 //488.	C/H3/Cs		O_rad/NonDeO		300-1500	8.60E+3	0		0		16.02	0		0		0		0		4		Landolt Bornstein estimates for C16H33O2J + C16H34
 //489.	C/H2/NonDeC	O_rad/NonDeO		300-1500	8.60E+3	0		0		16.02	0		0		0		0		4		Landolt Bornstein estimates for C16H33O2J + C16H34
-//Added by AJ for low temperature aromatic oxidation
-533.    C/H3/Cb	O_pri_rad		500-1000	1.26e+13	0.0	0.0	2.59	0	0	0	0	1	Tully et al. experimental data
-534.    C/H3/Cb	O_rad/NonDeO	600-1000	3.97e+11	0.0	0.0	14.08	0	0	0	0	1	Baulch et al. literature review (value for HO2 + toluene entered here)
-534.    C/H3/Cb	O2b				700-1200	1.81e+12	0.0	0.0	39.71	0	0	0	0	1	Baulch et al. literature review (value for HO2 + toluene entered here)    
+//Added by AJ for low temperature aromatic oxidation (given rank 1 so that RMG will presumably prefer these rates to others that it makes up)
+//Notes: AJ did not find data for ethylbenzene + O2 or ethylbenzene + OH on the NIST Kinetics databasa, so values for toluene (per H) were used instead 
+533.    C/H3/Cb	O_pri_rad		500-1000	0.42e+13	0.0	0.0	2.59	0	0	0	0	1	Tully et al. experimental data (changed to per H)
+534.    C/H2/Cb	O_pri_rad		500-1000	0.42e+13	0.0	0.0	2.59	0	0	0	0	1	Tully et al. experimental data (changed to per H)
+535.    C/H/Cb	O_pri_rad		500-1000	0.42e+13	0.0	0.0	2.59	0	0	0	0	1	Tully et al. experimental data (changed to per H)
+536.    C/H3/Cb	O_rad/NonDeO	600-1000	1.32e+11	0.0	0.0	14.08	0	0	0	0	1	Baulch et al. literature review (value for HO2 + toluene) (changed to per H)
+537.    C/H2/Cb	O_rad/NonDeO	600-1000	1.33e+11	0.0	0.0	11.30	0	0	0	0	1	Baulch et al. literature review (value for HO2 + ethylbenzene) (changed to per H)
+538.    C/H/Cb	O_rad/NonDeO	600-1000	1.33e+11	0.0	0.0	11.30	0	0	0	0	1	Baulch et al. literature review (value for HO2 + ethylbenzene) (changed to per H)
+539.    C/H3/Cb	O2b				700-1200	0.6e+12		0.0	0.0	39.71	0	0	0	0	1	Baulch et al. literature review (value for HO2 + toluene entered here) (changed to per H)
+540.    C/H2/Cb	O2b				700-1200	0.6e+12		0.0	0.0	39.71	0	0	0	0	1	Baulch et al. literature review (value for HO2 + toluene entered here) (changed to per H)
+541.    C/H/Cb	O2b				700-1200	0.6e+12		0.0	0.0	39.71	0	0	0	0	1	Baulch et al. literature review (value for HO2 + toluene entered here) (changed to per H)
