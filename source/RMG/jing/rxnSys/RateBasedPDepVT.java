@@ -71,7 +71,7 @@ public class RateBasedPDepVT extends RateBasedVT {
         double[] leakFlux = PDepNetwork.getSpeciesLeakFluxes(ps, cerm);
         for (int i = 1; i <= cerm.getMaxSpeciesID(); i++) {
             if (leakFlux[i] > Rmin) {
-                System.out.println("Exceeded largest permitted flux for convergence (tolerance="+tolerance+"): " + Rmin);
+                Logger.info("Exceeded largest permitted flux for convergence (tolerance="+tolerance+"): " + Rmin);
                 return false;
             }
         }
