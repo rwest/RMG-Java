@@ -4852,6 +4852,14 @@ public class ReactionModelGenerator {
         	System.out.println("Note: Overriding RMG-defined MAX_HEAVYATOM_NUM with user-defined value: " + maxHANum);
         	line = ChemParser.readMeaningfulLine(reader);
         }
+        if (line.startsWith("MaxCycle")) {
+        	StringTokenizer st = new StringTokenizer(line);
+        	String dummyString = st.nextToken();	// This should hold "MaxCycleNumberPerSpecies:"
+        	int maxCycleNum = Integer.parseInt(st.nextToken());
+        	ChemGraph.setMaxCycleNumber(maxCycleNum);
+        	System.out.println("Note: Overriding RMG-defined MAX_CYCLE_NUM with user-defined value: " + maxCycleNum);
+        	line = ChemParser.readMeaningfulLine(reader);
+        }
         return line;
     }
     

@@ -2749,6 +2749,9 @@ return sn;
     	MAX_HEAVYATOM_NUM = maxHANumber;
     }
     
+    public static void setMaxCycleNumber(int maxCycleNumber) {
+    	MAX_CYCLE_NUM = maxCycleNumber;
+    }    
     public int getHeavyAtomNumber() {
     	return getCarbonNumber() + getOxygenNumber() + getSulfurNumber() + getSiliconNumber();
     }
