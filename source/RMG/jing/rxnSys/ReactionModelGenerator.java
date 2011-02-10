@@ -133,6 +133,7 @@ public class ReactionModelGenerator {
 	protected static int maxEdgeSpeciesAfterPruning;
 	
 	public int limitingReactantID = 1;
+	public int numberOfEquivalenceRatios = 0;
 	
 	//## operation ReactionModelGenerator()
     public  ReactionModelGenerator() {
@@ -740,8 +741,8 @@ public class ReactionModelGenerator {
         			while (st.hasMoreTokens()) {
         				String name = st.nextToken();
         				Species spe = (Species)speciesSet.get(name);
+        				if (spe == null) throw new InvalidConversionException("Unknown reactant in 'Goal Conversion' field of input file : " + name);
         				setLimitingReactantID(spe.getID());
-        				if (spe == null) throw new InvalidConversionException("Unknown reactant: " + name);
         				String conv = st.nextToken();
         				double conversion;
         				try {
@@ -1399,8 +1400,9 @@ public class ReactionModelGenerator {
             ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
             ReactionTime begin = (ReactionTime)beginList.get(i);
             ReactionTime end = (ReactionTime)endList.get(i);
-            endList.set(i,rs.solveReactionSystem(begin, end, true, true, true, iterationNumber-1));
-            Chemkin.writeChemkinInputFile(rs);
+            LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
+            endList.set(i,rs.solveReactionSystem(begin, end, true, true, true, iterationNumber-1,seedmechnonpdeprxns));
+            Chemkin.writeChemkinInputFile(rs, seedmechnonpdeprxns);
             boolean terminated = rs.isReactionTerminated();
             terminatedList.add(terminated);
             if(!terminated)
@@ -1530,7 +1532,8 @@ public class ReactionModelGenerator {
 					boolean conditionChanged = (Boolean)conditionChangedList.get(i);
 					ReactionTime begin = (ReactionTime)beginList.get(i);
 					ReactionTime end = (ReactionTime)endList.get(i);
-					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, conditionChanged, iterationNumber-1));
+                                        LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
+					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, conditionChanged, iterationNumber-1,seedmechnonpdeprxns));
 					//end = reactionSystem.solveReactionSystem(begin, end, false, reactionChanged, conditionChanged, iterationNumber-1);
 				}
 				solverMin = solverMin + (System.currentTimeMillis()-startTime)/1000/60;
@@ -1540,7 +1543,8 @@ public class ReactionModelGenerator {
 					// we over-write the chemkin file each time, so only the LAST reaction system is saved
 					// i.e. if you are using RATE for pdep, only the LAST pressure is used.
 					ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-					Chemkin.writeChemkinInputFile(rs);
+                                        LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
+					Chemkin.writeChemkinInputFile(rs,seedmechnonpdeprxns);
 				}
 				//9/1/09 gmagoon: if we are using QM, output a file with the CHEMKIN name, the RMG name, the (modified) InChI, and the (modified) InChIKey
 				if (ChemGraph.useQM){
@@ -1579,15 +1583,16 @@ public class ReactionModelGenerator {
 					System.out.println("At this time: " + ((ReactionTime)endList.get(i)).toString());
 					Species spe = SpeciesDictionary.getSpeciesFromID(getLimitingReactantID());
 					double conv = rs.getPresentConversion(spe);
-					System.out.print("Conversion of " + spe.getName()  + " is:");
+					System.out.print("Conversion of " + spe.getFullName()  + " is:");
 					System.out.println(conv);
 				}
 				
 			    System.out.println("Running Time is: " + String.valueOf((System.currentTimeMillis()-tAtInitialization)/1000/60) + " minutes.");
 				printModelSize();
-				
+				printMemoryUsed();
+
 				startTime = System.currentTimeMillis();
-				double mU = memoryUsed();
+				double mU = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 				double gc = (System.currentTimeMillis()-startTime)/1000/60;
 				
 				startTime = System.currentTimeMillis();
@@ -1660,7 +1665,8 @@ public class ReactionModelGenerator {
 					boolean conditionChanged = (Boolean)conditionChangedList.get(i);
 					ReactionTime begin = (ReactionTime)beginList.get(i);
 					ReactionTime end = (ReactionTime)endList.get(i);
-					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, false, iterationNumber-1));
+                                        LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
+					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, false, iterationNumber-1,seedmechnonpdeprxns));
 					// end = reactionSystem.solveReactionSystem(begin, end, false, reactionChanged, false, iterationNumber-1);
 				}
 				solverMin = solverMin + (System.currentTimeMillis()-startTime)/1000/60;
@@ -1720,7 +1726,7 @@ public class ReactionModelGenerator {
 					System.out.println("At this reaction time: " + ((ReactionTime)endList.get(i)).toString());
 					Species spe = SpeciesDictionary.getSpeciesFromID(getLimitingReactantID());
 					double conv = rs.getPresentConversion(spe);
-					System.out.print("Conversion of " + spe.getName()  + " is:");
+					System.out.print("Conversion of " + spe.getFullName()  + " is:");
 					System.out.println(conv);
 				}
         		//System.out.println("At this time: " + end.toString());
@@ -1729,21 +1735,8 @@ public class ReactionModelGenerator {
         		//System.out.print("current conversion = ");
         		//System.out.println(conv);
 				
-        		Runtime runTime = Runtime.getRuntime();
-        		System.out.print("Memory used: ");
-        		System.out.println(runTime.totalMemory());
-        		System.out.print("Free memory: ");
-        		System.out.println(runTime.freeMemory());
+        		printMemoryUsed();
 				
-        		//runTime.gc();
-				/* if we're not calling runTime.gc() then don't bother printing this:
-				 System.out.println("After garbage collection:");
-				 System.out.print("Memory used: ");
-				 System.out.println(runTime.totalMemory());
-				 System.out.print("Free memory: ");
-				 System.out.println(runTime.freeMemory());
-				 */
-
 				printModelSize();
 				
         	}
@@ -1785,7 +1778,8 @@ public class ReactionModelGenerator {
                 //terminated = false;
                 ReactionTime begin = (ReactionTime)beginList.get(i);
                 ReactionTime end = (ReactionTime)endList.get(i);
-                rs.solveReactionSystemwithSEN(begin, end, true, false, false);
+                LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
+                rs.solveReactionSystemwithSEN(begin, end, true, false, false, seedmechnonpdeprxns);
                 //reactionSystem.solveReactionSystemwithSEN(begin, end, true, false, false);
 			}
 			
@@ -1794,7 +1788,8 @@ public class ReactionModelGenerator {
         // All of the reaction systems are the same, so just write the chemkin
         //	file for the first reaction system
 		ReactionSystem rs = (ReactionSystem)reactionSystemList.get(0);
-		Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus()); 
+                LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
+		Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus(),seedmechnonpdeprxns);
 		
         //9/1/09 gmagoon: if we are using QM, output a file with the CHEMKIN name, the RMG name, the (modified) InChI, and the (modified) InChIKey
         if (ChemGraph.useQM){
@@ -2187,7 +2182,7 @@ public class ReactionModelGenerator {
 		System.gc();
 	}
 	
-	public static long memoryUsed(){
+	public static void printMemoryUsed(){
 		garbageCollect();
 		Runtime rT = Runtime.getRuntime();
 		long uM, tM, fM;
@@ -2196,11 +2191,9 @@ public class ReactionModelGenerator {
 		uM = tM - fM;
 		System.out.println("After garbage collection:");
 		System.out.print("Memory used: ");
-		System.out.println(tM);
+		System.out.println(uM);
 		System.out.print("Free memory: ");
 		System.out.println(fM);
-		
-		return uM;
 	}
 	
 	private HashSet readIncludeSpecies(String fileName) {
@@ -2565,7 +2558,7 @@ public class ReactionModelGenerator {
             bw = new BufferedWriter(new FileWriter("Restart/edgeSpecies.txt"));
 			for(Iterator iter=((CoreEdgeReactionModel)getReactionModel()).getUnreactedSpeciesSet().iterator();iter.hasNext();){
 				Species species = (Species) iter.next();
-				bw.write(species.getName()+"("+species.getID()+")");
+				bw.write(species.getFullName());
 				bw.newLine();
 				int dummyInt = 0;
 				bw.write(species.getChemGraph().toString(dummyInt));
@@ -2651,7 +2644,7 @@ public class ReactionModelGenerator {
             bw = new BufferedWriter(new FileWriter("Restart/coreSpecies.txt"));
 			for(Iterator iter=getReactionModel().getSpecies();iter.hasNext();){
 				Species species = (Species) iter.next();
-				bw.write(species.getName()+"("+species.getID()+")");
+				bw.write(species.getFullName());
 				bw.newLine();
 				int dummyInt = 0;
 				bw.write(species.getChemGraph().toString(dummyInt));
@@ -2837,12 +2830,10 @@ public class ReactionModelGenerator {
     		
     		LinkedList allNets = PDepNetwork.getNetworks();
     		
-			int netCounter = 0;
 			for(Iterator iter=allNets.iterator(); iter.hasNext();){
 				PDepNetwork pdepnet = (PDepNetwork) iter.next();
 				
-				++netCounter;
-				bw.write("PDepNetwork #" + netCounter);
+				bw.write("PDepNetwork #" + pdepnet.getID());
 				bw.newLine();
 				
 				// Write netReactionList
@@ -4026,9 +4017,9 @@ public class ReactionModelGenerator {
 		  (((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber()+reactionModel.getSpeciesNumber())>= minSpeciesForPruning){
 			
 			int numberToBePruned = ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber() - maxEdgeSpeciesAfterPruning;
-			System.out.println("PDep Pruning DEBUG:\nThe number of species in the model's edge, before pruning: " + ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber());
-			System.out.println("PDep Pruning DEBUG:\nRMG thinks the following number of species" + 
-					" needs to be pruned: " + numberToBePruned);
+			//System.out.println("PDep Pruning DEBUG:\nThe number of species in the model's edge, before pruning: " + ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber());
+			//System.out.println("PDep Pruning DEBUG:\nRMG thinks the following number of species" +
+			//		" needs to be pruned: " + numberToBePruned);
 			Iterator iter = JDAS.edgeID.keySet().iterator();//determine the maximum edge flux ratio for each edge species
 			while(iter.hasNext()){
 				Species spe = (Species)iter.next();
@@ -4046,10 +4037,51 @@ public class ReactionModelGenerator {
 					prunableSpeciesMap.put(spe, maxmaxRatio);
 				}
 			}
+			//repeat with the edgeLeakID; if a species appears in both lists, it will be prunable only if it is prunable in both cases, and the sum of maximum edgeFlux + maximum edgeLeakFlux (for each reaction system) will be considered; this will be a conservative overestimate of maximum (edgeFlux+edgeLeakFlux)
+			iter = JDAS.edgeLeakID.keySet().iterator();
+			while(iter.hasNext()){
+				Species spe = (Species)iter.next();
+				Integer id = (Integer)JDAS.edgeLeakID.get(spe);
+				//check whether the same species is in edgeID
+				if(JDAS.edgeID.containsKey(spe)){//the species exists in edgeID
+				    if(prunableSpeciesMap.containsKey(spe)){//the species was determined to be "prunable" based on edgeID
+					Integer idEdge=(Integer)JDAS.edgeID.get(spe);
+					double maxmaxRatio = ds0.maxEdgeFluxRatio[id-1]+ds0.maxEdgeFluxRatio[idEdge-1];
+					boolean prunable = ds0.prunableSpecies[id-1];
+					//go through the rest of the reaction systems to see if there are higher max flux ratios
+					for (Integer i = 1; i < reactionSystemList.size(); i++) {
+						JDAS ds = (JDAS)((ReactionSystem) reactionSystemList.get(i)).getDynamicSimulator();
+						if(ds.maxEdgeFluxRatio[id-1]+ds.maxEdgeFluxRatio[idEdge-1] > maxmaxRatio) maxmaxRatio = ds.maxEdgeFluxRatio[id-1]+ds.maxEdgeFluxRatio[idEdge-1];
+						if(!ds.prunableSpecies[id-1]) prunable = false;// probably redundant: if the conc. is zero in one system, it should be zero in all systems, but it is included for completeness
+					}
+					if( prunable){//if the species is "prunable" (i.e. it doesn't have any reactions producing it with zero flux), replace with the newly determined maxmaxRatio
+						prunableSpeciesMap.remove(spe);
+						prunableSpeciesMap.put(spe, maxmaxRatio);
+					}
+					else{//otherwise, the species is not prunable in both edgeID and edgeLeakID and should be removed from the prunable species map
+						prunableSpeciesMap.remove(spe);
+					}
+				    }
+				}
+				else{//the species is new
+				    double maxmaxRatio = ds0.maxEdgeFluxRatio[id-1];
+				    boolean prunable = ds0.prunableSpecies[id-1];
+				    //go through the rest of the reaction systems to see if there are higher max flux ratios
+				    for (Integer i = 1; i < reactionSystemList.size(); i++) {
+					    JDAS ds = (JDAS)((ReactionSystem) reactionSystemList.get(i)).getDynamicSimulator();
+					    if(ds.maxEdgeFluxRatio[id-1] > maxmaxRatio) maxmaxRatio = ds.maxEdgeFluxRatio[id-1];
+					    if(!ds.prunableSpecies[id-1]) prunable = false;// probably redundant: if the conc. is zero in one system, it should be zero in all systems, but it is included for completeness
+				    }
+				    //if the species is "prunable" (i.e. it doesn't have any reactions producing it with zero flux), add it to the prunableSpeciesMap
+				    if( prunable){
+					    prunableSpeciesMap.put(spe, maxmaxRatio);
+				    }
+				}
+			}
 			// at this point prunableSpeciesMap includes ALL prunable species, no matter how large their flux
 			
-			System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
-					" as prunable, before checking against explored (included) species: " + prunableSpeciesMap.size());
+			//System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
+			//		" as prunable, before checking against explored (included) species: " + prunableSpeciesMap.size());
 
 			// Pressure dependence only: Species that are included in any
 			// PDepNetwork are not eligible for pruning, so they must be removed
@@ -4066,8 +4098,8 @@ public class ReactionModelGenerator {
 				}
 			}
 			
-			System.out.println("PDep Pruning DEBUG:\nRMG now reduced the number of prunable species," +
-					" after checking against explored (included) species, to: " + prunableSpeciesMap.size());
+			//System.out.println("PDep Pruning DEBUG:\nRMG now reduced the number of prunable species," +
+			//		" after checking against explored (included) species, to: " + prunableSpeciesMap.size());
 
 			// sort the prunableSpecies by maxmaxRatio
 			// i.e. sort the map by values
@@ -4099,10 +4131,10 @@ public class ReactionModelGenerator {
 				else break;  // no more to be pruned
 			}
 			
-			System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
-					" to be pruned due to max flux ratio lower than threshold: " + belowThreshold);
-			System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
-					" to be pruned due to low max flux ratio : " + lowMaxFlux);
+			//System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
+			//		" to be pruned due to max flux ratio lower than threshold: " + belowThreshold);
+			//System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
+			//		" to be pruned due to low max flux ratio : " + lowMaxFlux);
 			
 			//now, speciesToPrune has been filled with species that should be pruned from the edge
 			System.out.println("Pruning...");
@@ -4286,7 +4318,7 @@ public class ReactionModelGenerator {
 				}
 			} 
 		}
-		System.out.println("PDep Pruning DEBUG:\nThe number of species in the model's edge, after pruning: " + ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber());
+		//System.out.println("PDep Pruning DEBUG:\nThe number of species in the model's edge, after pruning: " + ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber());
         return;
     }
 	
@@ -4890,6 +4922,7 @@ public class ReactionModelGenerator {
 			}
 			//System.out.println(name);
 			Species species = Species.make(name,cg);
+			int numConcentrations = 0;	// The number of concentrations read-in for each species
 			
 			// The remaining tokens are either:
 			//		The desired concentrations
@@ -4923,14 +4956,26 @@ public class ReactionModelGenerator {
 					else if (!unit.equals("mole/cm3") && !unit.equals("mol/cm3")) {
 						throw new InvalidUnitException("Species Concentration in condition.txt!");
 					}
+					SpeciesStatus ss = new SpeciesStatus(species,1,concentration,0.0);
+					speciesStatus.put(numSpeciesStatus, ss);
+					++numSpeciesStatus;
+					++numConcentrations;
 				}
+			}
+			// Check if the number of concentrations read in is consistent with all previous
+			//	concentration counts.  The first time this function is called, the variable
+			//	numberOfEquivalenceRatios will be initialized.
+			boolean goodToGo = areTheNumberOfConcentrationsConsistent(numConcentrations);
+			if (!goodToGo) {
+				System.out.println("\n\nThe number of concentrations (" + numConcentrations + ") supplied for species " + species.getName() +
+						"\nis not consistent with the number of concentrations (" + numberOfEquivalenceRatios + ") " +
+						"supplied for all previously read-in species \n\n" +
+						"Terminating RMG simulation.");
+				System.exit(0);
 			}
 				// Make a SpeciesStatus and store it in the LinkedHashMap
 //				double flux = 0;
-//				int species_type = 1; // reacted species
-			SpeciesStatus ss = new SpeciesStatus(species,1,concentration,0.0);
-			speciesStatus.put(numSpeciesStatus, ss);
-			++numSpeciesStatus;		
+//				int species_type = 1; // reacted species	
 			
 			species.setReactivity(IsReactive); // GJB
             species.setConstantConcentration(IsConstantConcentration);
@@ -4977,6 +5022,7 @@ public class ReactionModelGenerator {
 			// The remaining tokens are concentrations
 			double inertConc = 0.0;
 			int counter = 0;
+			int numberOfConcentrations = 0;
 			while (st.hasMoreTokens()) {
 				String conc = st.nextToken();
 				inertConc = Double.parseDouble(conc);
@@ -5006,6 +5052,19 @@ public class ReactionModelGenerator {
 					((InitialStatus)initialStatusList.get(isIndex)).putInertGas(name,inertConc);
 				}
 				++counter;
+				++numberOfConcentrations;
+			}
+			
+			// Check if the number of concentrations read in is consistent with all previous
+			//	concentration counts.  The first time this function is called, the variable
+			//	numberOfEquivalenceRatios will be initialized.
+			boolean goodToGo = areTheNumberOfConcentrationsConsistent(numberOfConcentrations);
+			if (!goodToGo) {
+				System.out.println("\n\nThe number of concentrations (" + numberOfConcentrations + ") supplied for species " + name +
+						"\nis not consistent with the number of concentrations (" + numberOfEquivalenceRatios + ") " +
+						"supplied for all previously read-in species \n\n" +
+						"Terminating RMG simulation.");
+				System.exit(0);
 			}
 			
 	   		line = ChemParser.readMeaningfulLine(reader, true);
@@ -5225,6 +5284,21 @@ public class ReactionModelGenerator {
 		System.out.println("The model edge has " + Integer.toString(numberOfEdgeReactions) + " reactions and "+ Integer.toString(numberOfEdgeSpecies) + " species.");
 
 	}
+	
+	public boolean areTheNumberOfConcentrationsConsistent(int number) {
+		if (numberOfEquivalenceRatios == 0) numberOfEquivalenceRatios = number;
+		else {
+			if (number == numberOfEquivalenceRatios) return true;
+			else return false;
+		}
+		return true;
+	}
+
+        public LinkedHashSet extractSeedMechRxnsIfTheyExist() {
+            LinkedHashSet seedmechnonpdeprxns = new LinkedHashSet();
+            if (seedMechanism != null)  seedmechnonpdeprxns = seedMechanism.getReactionSet();
+            return seedmechnonpdeprxns;
+        }
 }
 /*********************************************************************
  File Path	: RMG\RMG\jing\rxnSys\ReactionModelGenerator.java

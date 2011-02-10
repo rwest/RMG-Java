@@ -58,14 +58,10 @@ public class ThirdBodyReaction extends Reaction {
   
   //## operation calculateRate(SystemSnapshot) 
   public double calculateRate(SystemSnapshot p_systemSnapshot) {
-      //#[ operation calculateRate(SystemSnapshot) 
       Temperature temp = p_systemSnapshot.getTemperature();
-      //Kinetics k = getKinetics();
-      //double rate = k.calculateRate(temp, calculateHrxn(temp));
       double rate = super.calculateTotalRate(temp);
       rate *= calculateThirdBodyCoefficient(p_systemSnapshot);
       return rate;
-      //#]
   }
   
   public HashMap getWeightMap(){
@@ -219,6 +215,7 @@ public class ThirdBodyReaction extends Reaction {
       //#[ operation toChemkinString() 
       StringBuilder s = getStructure().toChemkinString(true);
       s = formPDepSign(s);
+	  s = new StringBuilder(String.format("%-52s",s)); // pad it to 52 characters
       for (int i=0; i<getKinetics().length; i++) {
     	  s.append("\t" + getKinetics()[i].toChemkinString(calculateHrxn(p_temperature),p_temperature, true) + '\n');
       }
@@ -253,6 +250,7 @@ public class ThirdBodyReaction extends Reaction {
   public String toRestartString(Temperature t) {
       StringBuilder s = getStructure().toRestartString(true);
       s = formPDepSignForRestart(s);
+	  s = new StringBuilder(String.format("%-52s",s)); // pad it to 52 characters
       for (int i=0; i<getKinetics().length; i++) {
     	  s.append("\t" + getKinetics()[i].toChemkinString(calculateHrxn(t),t,false) + " 0.0 0.0 0.0\n");
       }

@@ -1,6 +1,8 @@
+Database: RMG_database
+
 PrimaryTransportLibrary:
-//Name: GRI-Mech-3.0
-//Location: GRI-Mech3.0
+Name: RMG-minimal
+Location: primaryTransportLibrary
 END
 
 Allene

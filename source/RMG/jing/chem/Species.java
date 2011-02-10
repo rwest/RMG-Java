@@ -337,7 +337,7 @@ public class Species {
         //#[ operation findStablestThermoData()
         double H = chemGraph.getThermoData().getH298();
         ChemGraph stablest = chemGraph;
-        if (resonanceIsomers != null) {
+        if (!resonanceIsomers.isEmpty()) {
         	Iterator iter = resonanceIsomers.iterator();
         	while (iter.hasNext()) {
         		ChemGraph g = (ChemGraph)iter.next();
@@ -727,11 +727,21 @@ public class Species {
 
 		therfitExecuted = (threeFrequencyModel != null);
     }
-
+	
+	//## operation getFullName()
+	public String getFullName() {
+		// get the full name with the ID appended.
+		// the chemkin name is a shortened version of this
+		if (addID){
+			return String.format("%s(%d)",getName(),getID());
+		}
+		else
+			return getName();
+	}
+	
+	//## operation getChemkinName()
 	  public String getChemkinName() {
-	        //#[ operation getChemkinName()
-		  if (addID){
-			  String chemkinName = getName() + "(" + getID() + ")";
+			  String chemkinName = getFullName();
 			  /* Updated by MRH on 1-Jun-2008
 			  	If statement used to check if chemkinName length was greater than 16
 			  	I've changed it to length 10.  Chemkin format dictates that any 
@@ -746,11 +756,7 @@ public class Species {
 			  
 		        if (chemkinName.length() > 10) chemkinName = "SPC(" + getID() + ")";
 		        return chemkinName;
-		  }
-		  else
-			  return getName();
 
-	        //#]
 	    }
 
     //## operation getInternalRotor()
@@ -874,7 +880,7 @@ public class Species {
         	dictionary.putSpecies(spe, true);
         	
 			// DEBUG: Tell console I made this species
-			System.out.println("Created new species: " + spe.getName() + "(" + spe.getID() + ")");
+			System.out.println("Created new species: " + spe.getFullName() );
 
         }
         else {
@@ -987,7 +993,7 @@ public class Species {
         p_chemGraph.setSpecies(spe);
         
      // DEBUG: Tell console I made this species
-		System.out.println("Created new species: " + spe.getName() + "(" + spe.getID() + ")");
+		System.out.println("Created new species: " + spe.getFullName() );
         
         return spe;
     }
@@ -1285,6 +1291,14 @@ public class Species {
 	            }
 	        result[0]=InChIstring;
 	        result[1]=InChIKeystring;
+		try {
+			reader.close();
+			in.close();
+		} catch (Exception e) {
+			String err = "Error closing InChI output reader for " + p_chemGraph.chemicalFormula + " : ";
+			err += e.toString();
+			System.out.println(err);
+		}
 		}
 		else {
 			result[0] = "";
@@ -1354,8 +1368,7 @@ public class Species {
 		
 		int mRad = 1;
 		int radCount = 0;
-		// Assume the species does not contain > 4 radicals
-		int maxRad = 4;
+		int maxRad = ChemGraph.MAX_RADICAL_NUM;
 		int[] radLocation = new int[maxRad];
 		int[] radType = new int[maxRad];
 		for (int numRads=0; numRads<(atomCount-1); numRads++) {
@@ -1647,7 +1660,7 @@ public class Species {
 		String line = ChemParser.readMeaningfulLine(reader, true);
 		
 		while (!line.toUpperCase().endsWith("V2000")) {
-			line = ChemParser.readMeaningfulLine(reader, true);
+			line = ChemParser.readMeaningfulLine(reader, false);
 		}
 		
 		String molFile = "";
@@ -1664,19 +1677,19 @@ public class Species {
 		
 		// Extract the information in the first line (Count Line) of the .mol file
 		st = new StringTokenizer(molFileLines[0]);
-		int numOfAtoms = Integer.parseInt(st.nextToken());
-		int numOfBonds = Integer.parseInt(st.nextToken());
+		int numOfAtoms = Integer.parseInt(molFileLines[0].substring(0,3).trim());
+		int numOfBonds = Integer.parseInt(molFileLines[0].substring(3,6).trim());
 		// Next few are irrelevant for RMG (as of 10-Feb-2009)
-		int numOfAtomLists = Integer.parseInt(st.nextToken());
-		String obsoleteString1 = st.nextToken();
-		String chiralFlag = st.nextToken();
-		int stextEntries = Integer.parseInt(st.nextToken());
-		String obsoleteString2 = st.nextToken();
-		String obsoleteString3 = st.nextToken();
-		String obsoleteString4 = st.nextToken();
-		String obsoleteString5 = st.nextToken();
+		int numOfAtomLists = Integer.parseInt(molFileLines[0].substring(6,9).trim());
+		String obsoleteString1 = molFileLines[0].substring(9,12);
+		String chiralFlag = molFileLines[0].substring(12,15);
+		int stextEntries = Integer.parseInt(molFileLines[0].substring(15,18).trim());
+		String obsoleteString2 = molFileLines[0].substring(18,21);
+		String obsoleteString3 = molFileLines[0].substring(21,24);
+		String obsoleteString4 = molFileLines[0].substring(24,27);
+		String obsoleteString5 = molFileLines[0].substring(27,30);
 		// Extract the number of M lines		
-		int numOfMLines = Integer.parseInt(st.nextToken());
+		int numOfMLines = Integer.parseInt(molFileLines[0].substring(30,33).trim());
 		
 		// Construct each individual line of the adjacency list
 		String[] adjListElement = new String[numOfAtoms];

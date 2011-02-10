@@ -395,9 +395,9 @@ public class PDepReaction extends Reaction {
 			if (conc < 0) {
 				double aTol = ReactionModelGenerator.getAtol();
 				//if (Math.abs(conc) < aTol) conc = 0;
-				//else throw new NegativeConcentrationException(spe.getName() + ": " + String.valueOf(conc));
+				//else throw new NegativeConcentrationException(spe.getFullName() + ": " + String.valueOf(conc));
 				if (conc < -100.0 * aTol)
-					throw new NegativeConcentrationException("Species " + spe.getName() + " has negative concentration: " + String.valueOf(conc));
+					throw new NegativeConcentrationException("Species " + spe.getFullName() + " has negative concentration: " + String.valueOf(conc));
 			}
 			forwardFlux *= conc;
 		}
@@ -424,9 +424,9 @@ public class PDepReaction extends Reaction {
                 if (conc < 0) {
                     double aTol = ReactionModelGenerator.getAtol();
                     //if (Math.abs(conc) < aTol) conc = 0;
-                    //else throw new NegativeConcentrationException(spe.getName() + ": " + String.valueOf(conc));
+                    //else throw new NegativeConcentrationException(spe.getFullName() + ": " + String.valueOf(conc));
                     if (conc < -100.0 * aTol)
-                        throw new NegativeConcentrationException("Species " + spe.getName() + " has negative concentration: " + String.valueOf(conc));
+                        throw new NegativeConcentrationException("Species " + spe.getFullName() + " has negative concentration: " + String.valueOf(conc));
                 }
                 reverseFlux *= conc;
             }
@@ -518,7 +518,8 @@ public class PDepReaction extends Reaction {
 			String result = getStructure().toChemkinString(true).toString();
 			if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV)
 				result = formPDepSign(result);
-			result += '\t' + "1.0E0 0.0 0.0" ;
+			result = String.format("%-52s",result);
+			result += "\t1.0E0 0.0 0.0" ;
 			result += "\t!" + getComments().toString()  + '\n';
 			if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV)
 				result += pDepRate.getChebyshev().toChemkinString() + '\n';
@@ -545,7 +546,8 @@ public class PDepReaction extends Reaction {
 			String result = getStructure().toRestartString(true).toString();
 			if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV)
 				result = formPDepSign(result);
-			result += '\t' + "1.0E0 0.0 0.0" ;
+			result = String.format("%-52s",result);
+			result += "\t1.0E0 0.0 0.0" ;
 			result += "\t!" + getComments().toString() +
 				"\tdeltaHrxn(T=298K) = " + 
 				calculateHrxn(new Temperature(298.0,"K")) + " kcal/mol\n";
@@ -575,17 +577,21 @@ public class PDepReaction extends Reaction {
 	@Override
 	public String toChemkinString(Temperature t, Pressure p) {
         if (pDepRate != null) {
-
 			String result = getStructure().toChemkinString(true).toString();
-			if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV)
-				result = formPDepSign(result);
+
 			if (PDepRateConstant.getMode() == PDepRateConstant.Mode.RATE) {
-				result = formPDepSign(result) + "\t" + calculateRate(t,p) + " 0.0 0.0";
-				result += "\t!" + getComments().toString()  + '\n';
+				result = String.format(result = formPDepSign(result));
+				result += String.format("\t%.3e 0.0 0.0",calculateRate(t,p));
+				result += "\t!" + getComments().toString() + '\n';
 				return result;
 			}
-			result += '\t' + "1.0E0 0.0 0.0";
-			result += "\t!" + getComments().toString()  + '\n';
+
+			if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV)
+				result = formPDepSign(result);
+			result = String.format("%-52s",result);
+
+			result += "\t1.0E0 0.0 0.0";
+			result += "\t!" + getComments().toString() + '\n';
 
 			if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV)
 				result += pDepRate.getChebyshev().toChemkinString() + '\n';

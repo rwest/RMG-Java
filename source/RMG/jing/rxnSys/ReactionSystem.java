@@ -244,7 +244,7 @@ public class ReactionSystem {
 //                                                    if (p_systemSnapshot.getSpeciesStatus(spe) != null)
 //                                                             conc = (p_systemSnapshot.getSpeciesStatus(spe)).getConcentration();
 //                                            if (conc<0)
-//                                                    throw new NegativeConcentrationException(spe.getName() + ": " + String.valueOf(conc));
+//                                                    throw new NegativeConcentrationException(spe.getFullName() + ": " + String.valueOf(conc));
 //                                        flux *= conc;
 //
 //                                    }
@@ -281,9 +281,9 @@ public class ReactionSystem {
 					if (conc<0) {
 						double aTol = ReactionModelGenerator.getAtol();
 						//if (Math.abs(conc) < aTol) conc = 0;
-						//else throw new NegativeConcentrationException(spe.getName() + ": " + String.valueOf(conc));
+						//else throw new NegativeConcentrationException(spe.getFullName() + ": " + String.valueOf(conc));
 						if (conc < -100.0 * aTol)
-							throw new NegativeConcentrationException("Species " + spe.getName() + " has negative concentration: " + String.valueOf(conc));
+							throw new NegativeConcentrationException("Species " + spe.getFullName() + " has negative concentration: " + String.valueOf(conc));
 					}
 					flux *= conc;
 
@@ -392,7 +392,7 @@ public class ReactionSystem {
         	}
         }
 
-        System.out.println("The main pathway to generate " + p_species.getName() + " is ");
+        System.out.println("The main pathway to generate " + p_species.getFullName() + " is ");
         System.out.println(maxReaction);
         System.out.println("The max flux is " + String.valueOf(maxFlux));
 
@@ -584,7 +584,7 @@ public class ReactionSystem {
         double maxFlux = 0;
         Reaction maxReaction = null;
 
-        System.out.println("the consumption paths for " + p_species.getName());
+        System.out.println("the consumption paths for " + p_species.getFullName());
         for (Iterator iter = p_reactionList.iterator(); iter.hasNext(); ) {
         	Reaction rxn = (Reaction)iter.next();
         	if (rxn.containsAsReactant(p_species)) {
@@ -614,7 +614,7 @@ public class ReactionSystem {
 
         	}
         }
-        System.out.println("the formationtion paths for " + p_species.getName());
+        System.out.println("the formationtion paths for " + p_species.getFullName());
         for (Iterator iter = p_reactionList.iterator(); iter.hasNext(); ) {
         	Reaction rxn = (Reaction)iter.next();
         	if (rxn.containsAsProduct(p_species)) {
@@ -690,7 +690,7 @@ public class ReactionSystem {
 
         for (Iterator iter = speSet.iterator(); iter.hasNext(); ) {
         	Species spe = (Species)iter.next();
-        	System.out.println(spe.getName()+"("+String.valueOf(spe.getID())+"): " + spe.getThermoData().toString());
+        	System.out.println(spe.getFullName()+": " + spe.getThermoData().toString());
         }
 
 
@@ -1478,7 +1478,7 @@ public String printLowerBoundConcentrations(LinkedList p_speciesList) {
 
     //## operation solveReactionSystem(ReactionTime,ReactionTime,boolean,boolean,boolean)
     //9/24/07 gmagoon: added p_reactionModel as parameter; subsequently removed
-    public ReactionTime solveReactionSystem(ReactionTime p_beginTime, ReactionTime p_endTime, boolean p_initialization, boolean p_reactionChanged, boolean p_conditionChanged, int iterationNum) {
+    public ReactionTime solveReactionSystem(ReactionTime p_beginTime, ReactionTime p_endTime, boolean p_initialization, boolean p_reactionChanged, boolean p_conditionChanged, int iterationNum, LinkedHashSet nonpdep_from_seed) {
  
         //#[ operation solveReactionSystem(ReactionTime,ReactionTime,boolean,boolean,boolean)
         Temperature t = getTemperatureModel().getTemperature(p_beginTime);
@@ -1497,7 +1497,7 @@ public String printLowerBoundConcentrations(LinkedList p_speciesList) {
 
         if (!beginStatus.getTime().equals(p_beginTime)) throw new InvalidBeginStatusException();
 		System.out.println("Solving reaction system...");
-        SystemSnapshot present = getDynamicSimulator().solve(p_initialization, getReactionModel(), p_reactionChanged, beginStatus, p_beginTime, p_endTime,t,p, p_conditionChanged, finishController.terminationTester, iterationNum);
+        SystemSnapshot present = getDynamicSimulator().solve(p_initialization, getReactionModel(), p_reactionChanged, beginStatus, p_beginTime, p_endTime,t,p, p_conditionChanged, finishController.terminationTester, iterationNum, nonpdep_from_seed);
 
         appendUnreactedSpeciesStatus(present, t);
 
@@ -1506,7 +1506,7 @@ public String printLowerBoundConcentrations(LinkedList p_speciesList) {
         //#]
     }
 
-    public void solveReactionSystemwithSEN(ReactionTime p_beginTime, ReactionTime p_endTime, boolean p_initialization, boolean p_reactionChanged, boolean p_conditionChanged) {
+    public void solveReactionSystemwithSEN(ReactionTime p_beginTime, ReactionTime p_endTime, boolean p_initialization, boolean p_reactionChanged, boolean p_conditionChanged, LinkedHashSet nonpdep_from_seed) {
     	Temperature t = getTemperatureModel().getTemperature(p_beginTime);
         Pressure p = getPressureModel().getPressure(p_beginTime);
 
@@ -1523,7 +1523,7 @@ public String printLowerBoundConcentrations(LinkedList p_speciesList) {
 
         if (!beginStatus.getTime().equals(p_beginTime)) throw new InvalidBeginStatusException();
 		System.out.println("Solving reaction system...");
-        LinkedList sS = ((JDASPK)getDynamicSimulator()).solveSEN(p_initialization, getReactionModel(), p_reactionChanged, beginStatus, p_beginTime, p_endTime,t,p, p_conditionChanged, finishController.terminationTester);
+        LinkedList sS = ((JDASPK)getDynamicSimulator()).solveSEN(p_initialization, getReactionModel(), p_reactionChanged, beginStatus, p_beginTime, p_endTime,t,p, p_conditionChanged, finishController.terminationTester, nonpdep_from_seed);
 
         for (int i=0; i< sS.size(); i++){
         	systemSnapshot.add(sS.get(i));

@@ -101,7 +101,7 @@ public class JDASSL extends JDAS {
     }*/	 
 
     //## operation solve(boolean,ReactionModel,boolean,SystemSnapshot,ReactionTime,ReactionTime,Temperature,Pressure,boolean)
-    public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged, TerminationTester tt, int p_iterationNum) {
+    public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged, TerminationTester tt, int p_iterationNum, LinkedHashSet nonpdep_from_seed) {
         
         // set up the input file
         setupInputFile();
@@ -158,7 +158,7 @@ public class JDASSL extends JDAS {
 			//rString is a combination of a integer and a real array
 			//real array format:  rate, A, n, Ea, Keq
 			//int array format :  nReac, nProd, r1, r2, r3, p1, p2, p3, rev(=1 or -1)
-			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure);
+			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure,nonpdep_from_seed);
 			
 			initializeWorkSpace();
 			initializeConcentrations(p_beginStatus, p_reactionModel, p_beginTime, p_endTime, initialSpecies);
@@ -387,7 +387,7 @@ public class JDASSL extends JDAS {
         	line = br.readLine();
         	
         	if (Double.parseDouble(line.trim()) != neq) {
-        		System.out.println("ODESolver didnt generate all species result");
+        		System.out.println("ODESolver didnt generate all species results");
         		System.exit(0);
         	}
         	endTime = Double.parseDouble(br.readLine().trim());
@@ -407,8 +407,8 @@ public class JDASSL extends JDAS {
         	}
 		//for autoflag cases, there will be additional information which may be used for pruning
 		if (autoflag){
-		    prunableSpecies = new boolean[edgeID.size()];
-		    maxEdgeFluxRatio = new double[edgeID.size()];
+		    prunableSpecies = new boolean[edgeID.size()+edgeLeakID.size()];
+		    maxEdgeFluxRatio = new double[edgeID.size()+edgeLeakID.size()];
 		    line=br.readLine();//read volume; (this is actually in the output even if AUTO is off, but is not used)
 		    line=br.readLine();//read the edgeflag
 		    Integer edgeflag = Integer.parseInt(line.trim());
@@ -416,16 +416,13 @@ public class JDASSL extends JDAS {
 			targetReached = true;
 		    }
 		    else{
-			System.out.println("DEBUG: DASSL Fortran code found that edge entity "+ edgeflag+ " exceeded the model enlargement criterion.");
 			targetReached = false;
 		    }
 		    line=br.readLine();//read the time integrated to
 		    double finalTime = Double.parseDouble(line.trim());
-			// read the "prunability index" (0 or 1) and maximum ratio (edge flux/Rchar) for each edge species; 
-			// note that edgeID only contains species, not P-dep networks, so we will not be reading in all the output from DASSL,
-			// only the flux ratio to actual edge species (vs. P-dep network pseudospecies)
+		    // read the "prunability index" (0 or 1) and maximum ratio (edge flux/Rchar) for each edge species; vector index + 1 corresponds to ID value in edgeID and edgeLeakID
 		    System.out.println("ODE solver integrated to "+ finalTime+" sec.");
-		    for (int i=0; i<edgeID.size(); i++){
+		    for (int i=0; i<(edgeID.size()+edgeLeakID.size()); i++){
 				line = br.readLine().trim(); //read the prunability index
 				int q = Integer.parseInt(line); //q should be 1 or 0
 				if (q == 1) { prunableSpecies[i] = true; } 
@@ -474,7 +471,7 @@ public class JDASSL extends JDAS {
 					spe = (Species)iter.next();
 					if((Integer)(IDTranslator.get(spe))==i+1) break;
 				}
-				String name = spe.getName();
+				String name = spe.getFullName();
 				fw.write(name + "\t");
 			}
 			fw.write("\n");

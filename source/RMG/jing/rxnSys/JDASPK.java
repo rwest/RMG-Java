@@ -98,7 +98,7 @@ public class JDASPK extends JDAS {
     }
 
     //## operation solve(boolean,ReactionModel,boolean,SystemSnapshot,ReactionTime,ReactionTime,Temperature,Pressure,boolean)
-    public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt, int p_iterationNum) {
+    public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt, int p_iterationNum, LinkedHashSet nonpdep_from_seed) {
         // set up the input file
         setupInputFile();
     	//outputString = new StringBuilder();
@@ -141,7 +141,7 @@ public class JDASPK extends JDAS {
 			//rString is a combination of a integer and a real array
 			//real array format:  rate, A, n, Ea, Keq
 			//int array format :  nReac, nProd, r1, r2, r3, p1, p2, p3, HASrev(T=1 or F=0)
-			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure);
+			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure, nonpdep_from_seed);
 			
 			nParameter = 0;
 			if (parameterInfor != 0) {
@@ -426,8 +426,8 @@ public class JDASPK extends JDAS {
         	}
 		//for autoflag cases, there will be additional information which may be used for pruning
 		if (autoflag){
-		    prunableSpecies = new boolean[edgeID.size()];
-		    maxEdgeFluxRatio = new double[edgeID.size()];
+		    prunableSpecies = new boolean[edgeID.size()+edgeLeakID.size()];
+		    maxEdgeFluxRatio = new double[edgeID.size()+edgeLeakID.size()];
 		    line=br.readLine();//read volume; (this is actually in the output even if AUTO is off, but is not used)
 		    line=br.readLine();//read the edgeflag
 		    Integer edgeflag = Integer.parseInt(line.trim());
@@ -440,10 +440,8 @@ public class JDASPK extends JDAS {
 		    line=br.readLine();//read the time integrated to
 		    double finalTime = Double.parseDouble(line.trim());
 		    System.out.println("ODE solver integrated to "+ finalTime+" sec.");
-			// read the "prunability index" (0 or 1) and maximum ratio (edge flux/Rchar) for each edge species; 
-			// note that edgeID only contains species, not P-dep networks, so we will not be reading in all the output from DASSL,
-			// only the flux ratio to actual edge species (vs. P-dep network pseudospecies)
-		    for (int i=0; i<edgeID.size(); i++){
+			// read the "prunability index" (0 or 1) and maximum ratio (edge flux/Rchar) for each edge species; vector index + 1 corresponds to ID value in edgeID and edgeLeakID
+		    for (int i=0; i<(edgeID.size()+edgeLeakID.size()); i++){
 				line = br.readLine().trim(); //read the prunability index
 				int q = Integer.parseInt(line); //q should be 1 or 0
 				if (q == 1) {prunableSpecies[i]=true;}
@@ -469,7 +467,7 @@ public class JDASPK extends JDAS {
 		return 1;
 	}
 	
-	public LinkedList solveSEN(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt) {
+	public LinkedList solveSEN(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt, LinkedHashSet nonpdep_from_seed) {
                 setupInputFile();
 	//	outputString = new StringBuilder();
 		Iterator spe_iter = p_reactionModel.getSpecies();
@@ -510,7 +508,7 @@ public class JDASPK extends JDAS {
 			//rString is a combination of a integer and a real array
 			//real array format:  rate, A, n, Ea, Keq
 			//int array format :  nReac, nProd, r1, r2, r3, p1, p2, p3, HASrev(T=1 or F=0)
-			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure);
+			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure, nonpdep_from_seed);
 			
 			nParameter = 0;
 			if (parameterInfor != 0) {
