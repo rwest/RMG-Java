@@ -208,13 +208,3 @@ CssH(OssH)-Css(OssH)
 6   H 0 {5,S}
 7   H 0 {1,S}
 8   C 0 {1,S}
-
-Css(OssH)-Css(OssH)
-1 * Cs 0 {2,S} {4,S} {7,S} {8,S}
-2   Os 0 {1,S} {3,S}
-3   H 0 {2,S}
-4   Cs 0 {5,S} {1,S}
-5   Os 0 {4,S} {6,S}
-6   H 0 {5,S}
-7   C 0 {1,S}
-8   C 0 {1,S}

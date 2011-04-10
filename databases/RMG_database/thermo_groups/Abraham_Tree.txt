@@ -72,4 +72,3 @@ L1: O
     L2: Od
     	//L3: OssCds(Od*)Oss // Carbonate
     	L3: Cds(Od*)Cds=CdsCds(Od) // Quinone
-	
