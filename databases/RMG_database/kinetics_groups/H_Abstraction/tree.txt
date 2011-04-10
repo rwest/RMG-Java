@@ -69,6 +69,9 @@ L1: X_H
 			L4: O/H/NonDeC
 			L4: O/H/NonDeO
 				L5: H2O2
+				L5: ROOH_pri
+				L5: ROOH_sec
+				L5: ROOH_ter
 			L4: O/H/OneDe
 	L2: Orad_O_H
 
