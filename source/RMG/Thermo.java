@@ -113,23 +113,25 @@ public static void main(String[] args) {
         	  System.out.println("Error in reading thermo_input.txt file:\nThe first line must read 'Solvation: on/off'.");
 
           in.close();
-          
-          thermo_output += "Output: Name" + "\t" + "deltaGsolv [=] kcal/mol" + "\n" + "\n";
+
+          thermo_output += "Name" + "\t" + "E" + "\t" + "S" + "\t" + "A" + "\t" + "B" + "\t" + "L" + "\t" + "V" + "\n" + "\n";
+          //thermo_output += "Output: Name" + "\t" + "deltaGsolv [=] kcal/mol" + "\n" + "\n";
           
           Iterator iter = speciesSet.iterator();       
           while (iter.hasNext()){
         	  Species spe = (Species)iter.next();
  
-            //double A = spe.getChemGraph().getAbramData().A;
-            //double B = spe.getChemGraph().getAbramData().B;
-            //double E = spe.getChemGraph().getAbramData().E;
-            //double S = spe.getChemGraph().getAbramData().S;
-            //double L = spe.getChemGraph().getAbramData().L;
+            double A = spe.getChemGraph().getAbramData().A;
+            double B = spe.getChemGraph().getAbramData().B;
+            double E = spe.getChemGraph().getAbramData().E;
+            double S = spe.getChemGraph().getAbramData().S;
+            double L = spe.getChemGraph().getAbramData().L;
+            double V = spe.getChemGraph().getAbramData().V;
 
             //double logK = -1.271 +(0.822*E)+(2.743*S)+(3.904*A)+(4.814*B)+(-0.213*L);
             //double deltaG = -2.303*8.314*298*logK/4180;
-            double G_gas = spe.getChemGraph().calculateG(systemTemp);
-            thermo_output += spe.getName() + "\t" + G_gas + "\n";
+            //double G_gas = spe.getChemGraph().calculateG(systemTemp);
+            thermo_output += spe.getName() + "\t" + E + "\t" + S + "\t" + A + "\t" + B + "\t" + L + "\t" + V + "\n";
 
           }
           
