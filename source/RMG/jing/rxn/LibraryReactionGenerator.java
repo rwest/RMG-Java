@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -35,6 +35,7 @@ import jing.chem.*;
 import java.util.*;
 
 import jing.chem.Species;
+import jing.rxnSys.Logger;
 
 //## package jing::rxn 
 
@@ -192,7 +193,7 @@ public class LibraryReactionGenerator implements ReactionGenerator {
     	while (iter_reaction.hasNext()){
     		Reaction rxn =(Reaction)iter_reaction.next();
     		if (rxn instanceof ThirdBodyReaction || rxn instanceof TROEReaction || rxn instanceof LindemannReaction)
-    			System.out.println("RMG is only using the high-pressure limit parameters from Reaction Library, reaction: " + rxn.toString());
+    			Logger.info("RMG is only using the high-pressure limit parameters from Reaction Library, reaction: " + rxn.toString());
     	}
         return reactionSet;
     }

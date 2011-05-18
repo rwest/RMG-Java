@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -46,6 +46,15 @@ public static void main(String[] args) {
 //  initializeSystemProperties();
 	RMG.globalInitializeSystemProperties();
 	LinkedHashSet speciesSet = new LinkedHashSet();
+    String abraham_output = "";
+    double c=0;
+    double a=0;
+    double b=0;
+    double l=0;
+    double s=0;
+    double es=0;
+    String solvent="";
+    LinkedHashMap speciesFromInputFile = new LinkedHashMap();
     String thermo_output = "";
     Temperature systemTemp = new Temperature();
 
@@ -94,6 +103,9 @@ public static void main(String[] args) {
         			  System.out.println("Error in reading graph: Graph contains a forbidden structure.\n" + g.toString());
         			  System.exit(0);
         		  }
+
+                          ReactionModelGenerator.addChemGraphToListIfNotPresent_ElseTerminate(speciesFromInputFile,cg,speciesName);
+
         		  Species species = Species.make(speciesName,cg);
         		  speciesSet.add(species);
         		  line = ChemParser.readMeaningfulLine(data, true);

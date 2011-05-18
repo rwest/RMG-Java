@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -98,7 +98,7 @@ public class JDASPK extends JDAS {
     }
 
     //## operation solve(boolean,ReactionModel,boolean,SystemSnapshot,ReactionTime,ReactionTime,Temperature,Pressure,boolean)
-    public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt, int p_iterationNum, LinkedHashSet nonpdep_from_seed) {
+    public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt, int p_iterationNum) {
         // set up the input file
         setupInputFile();
     	//outputString = new StringBuilder();
@@ -141,7 +141,7 @@ public class JDASPK extends JDAS {
 			//rString is a combination of a integer and a real array
 			//real array format:  rate, A, n, Ea, Keq
 			//int array format :  nReac, nProd, r1, r2, r3, p1, p2, p3, HASrev(T=1 or F=0)
-			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure, nonpdep_from_seed);
+			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure);
 			
 			nParameter = 0;
 			if (parameterInfor != 0) {
@@ -182,8 +182,8 @@ public class JDASPK extends JDAS {
                     bw.write("\n" + thermoString.toString() + "\n" + p_temperature.getK() + " " + p_pressure.getPa() + "\n" + rList.size() + "\n" + rString.toString() + "\n" + thirdBodyList.size() + "\n"+tbrString.toString() + "\n" + troeList.size() + "\n" + troeString.toString()+"\n" + lindemannList.size() + "\n" + lindemannString.toString() + "\n");
         }
         catch (IOException e) {
-            System.err.println("Problem writing Solver Input File!");
-            e.printStackTrace();
+            Logger.error("Problem writing Solver Input File!");
+            Logger.logStackTrace(e);
         }
 		///4/30/08 gmagoon: code for providing edge reaction info to DASPK in cases if the automatic time stepping flag is set to true
 		if (autoflag)
@@ -198,8 +198,8 @@ public class JDASPK extends JDAS {
                     fw.close();
                 }
                 catch (IOException e) {
-                    System.err.println("Problem closing Solver Input File!");
-                    e.printStackTrace();
+                    Logger.error("Problem closing Solver Input File!");
+                    Logger.logStackTrace(e);
 		}
         int idid=0;
         LinkedHashMap speStatus = new LinkedHashMap();
@@ -212,10 +212,10 @@ public class JDASPK extends JDAS {
         	//idid = solveDAE(p_initialization, reactionList, p_reactionChanged, thirdBodyReactionList, troeReactionList, nState, y, yprime, tBegin, tEnd, this.rtol, this.atol, T, P);
         idid = solveDAE();
         if (idid !=1 && idid != 2 && idid != 3)	{
-        	System.out.println("The idid from DASPK was "+idid );
+        	Logger.debug("The idid from DASPK was "+idid );
         	throw new DynamicSimulatorException("DASPK: SA off.");
         }
-        System.out.println("After ODE: from " + String.valueOf(tBegin) + " SEC to " + String.valueOf(endTime) + "SEC");
+        Logger.info("After ODE: from " + String.valueOf(tBegin) + " SEC to " + String.valueOf(endTime) + "SEC");
         Global.solvertime = Global.solvertime + (System.currentTimeMillis() - startTime)/1000/60;
         startTime = System.currentTimeMillis();
         speStatus = generateSpeciesStatus(p_reactionModel, y, yprime, 0);
@@ -263,8 +263,8 @@ public class JDASPK extends JDAS {
 //			fw.write(outputString.toString());
 //			fw.close();
 //		} catch (IOException e) {
-//			System.err.println("Problem writing Solver Input File!");
-//			e.printStackTrace();
+//			Logger.error("Problem writing Solver Input File!");
+//			Logger.logStackTrace(e);
 //		}
 		
 		// Rename RWORK and IWORK files if they exist
@@ -287,18 +287,22 @@ public class JDASPK extends JDAS {
                                         line = line.trim();
 					silentError = false; //there is actual output from the ODE solver
                                         if (!(line.contains("ODESOLVER SUCCESSFUL"))) {
-                                            System.err.println("Error running the ODESolver: "+line);
+                                            Logger.error("Error running the ODESolver: "+line);
                                         }
                                 }
 				if(silentError){
-				    System.err.println("Error: No stdout output from DASPK");
+				    Logger.error("Error: No stdout output from DASPK");
 				}
                         int exitValue = solver.waitFor();
+			is.close();
+			solver.getErrorStream().close();
+			solver.getOutputStream().close();
                 }
                 catch (Exception e) {
                         String err = "Error in running ODESolver \n";
                         err += e.toString();
-                        e.printStackTrace();
+                        Logger.logStackTrace(e);
+						Logger.error(err);
                         System.exit(0);
                 }
 
@@ -317,7 +321,7 @@ public class JDASPK extends JDAS {
 			renameSuccess = f.renameTo(newFile);
                         if (!renameSuccess)
                         {
-                            System.out.println("Renaming of RWORK file(s) failed. renameIntermediateFilesBeforeRun()");
+                            Logger.critical("Renaming of RWORK file(s) failed. renameIntermediateFilesBeforeRun()");
                             System.exit(0);
                         }
                 }
@@ -330,7 +334,7 @@ public class JDASPK extends JDAS {
                     renameSuccess = f.renameTo(newFile);
                     if (!renameSuccess)
                     {
-                        System.out.println("Renaming of IWORK file(s) failed. renameIntermediateFilesBeforeRun()");
+                        Logger.critical("Renaming of IWORK file(s) failed. renameIntermediateFilesBeforeRun()");
                         System.exit(0);
                     }
                 }
@@ -343,7 +347,7 @@ public class JDASPK extends JDAS {
                     renameSuccess = f.renameTo(newFile);
                     if (!renameSuccess)
                     {
-                        System.out.println("Renaming of variables.dat file(s) failed. renameIntermediateFilesBeforeRun()");
+                        Logger.critical("Renaming of variables.dat file(s) failed. renameIntermediateFilesBeforeRun()");
                         System.exit(0);
                     }
                 }
@@ -357,7 +361,7 @@ public class JDASPK extends JDAS {
             boolean renameSuccess = f.renameTo(newFile);
             if (!renameSuccess)
             {
-                System.out.println("Renaming of RWORK file(s) failed. (renameIntermediateFilesAfterRun())");
+                Logger.critical("Renaming of RWORK file(s) failed. (renameIntermediateFilesAfterRun())");
                 System.exit(0);
             }
             
@@ -368,7 +372,7 @@ public class JDASPK extends JDAS {
             renameSuccess = f.renameTo(newFile);
             if (!renameSuccess)
             {
-                System.out.println("Renaming of IWORK file(s) failed. (renameIntermediateFilesAfterRun())");
+                Logger.critical("Renaming of IWORK file(s) failed. (renameIntermediateFilesAfterRun())");
                 System.exit(0);
             }
             
@@ -379,7 +383,7 @@ public class JDASPK extends JDAS {
             renameSuccess = f.renameTo(newFile);
             if (!renameSuccess)
             {
-                System.out.println("Renaming of variables.dat file(s) failed. (renameIntermediateFilesAfterRun())");
+                Logger.critical("Renaming of variables.dat file(s) failed. (renameIntermediateFilesAfterRun())");
                 System.exit(0);
             }
 	}
@@ -396,7 +400,7 @@ public class JDASPK extends JDAS {
         	Global.solverIterations = Integer.parseInt(line.trim());
         	line = br.readLine();
         	if (Double.parseDouble(line.trim()) != neq) {
-        		System.out.println("ODESolver didnt generate all species result");
+        		Logger.critical("ODESolver didnt generate all species result");
         		System.exit(0);
         	}
         	endTime = Double.parseDouble(br.readLine().trim());
@@ -439,7 +443,7 @@ public class JDASPK extends JDAS {
 		    }
 		    line=br.readLine();//read the time integrated to
 		    double finalTime = Double.parseDouble(line.trim());
-		    System.out.println("ODE solver integrated to "+ finalTime+" sec.");
+		    Logger.info(String.format("ODE solver integrated to %10.3e s", finalTime));
 			// read the "prunability index" (0 or 1) and maximum ratio (edge flux/Rchar) for each edge species; vector index + 1 corresponds to ID value in edgeID and edgeLeakID
 		    for (int i=0; i<(edgeID.size()+edgeLeakID.size()); i++){
 				line = br.readLine().trim(); //read the prunability index
@@ -447,7 +451,7 @@ public class JDASPK extends JDAS {
 				if (q == 1) {prunableSpecies[i]=true;}
 				else if (q == 0) {prunableSpecies[i] = false;}
 				else {
-					System.out.println("Misread solver output file - prunable species index should be 0 or 1, not "+q);
+					Logger.critical("Misread solver output file - prunable species index should be 0 or 1, not "+q);
 					System.exit(0);
 				}
 				line = br.readLine().trim();//read the max edge flux ratio
@@ -460,14 +464,14 @@ public class JDASPK extends JDAS {
         catch (IOException e) {
         	String err = "Error in reading Solver Output File! \n";
         	err += e.toString();
-        	e.printStackTrace();
+        	Logger.logStackTrace(e);
         	System.exit(0);
         }
         
 		return 1;
 	}
 	
-	public LinkedList solveSEN(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt, LinkedHashSet nonpdep_from_seed) {
+	public LinkedList solveSEN(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged,TerminationTester tt) {
                 setupInputFile();
 	//	outputString = new StringBuilder();
 		Iterator spe_iter = p_reactionModel.getSpecies();
@@ -508,7 +512,7 @@ public class JDASPK extends JDAS {
 			//rString is a combination of a integer and a real array
 			//real array format:  rate, A, n, Ea, Keq
 			//int array format :  nReac, nProd, r1, r2, r3, p1, p2, p3, HASrev(T=1 or F=0)
-			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure, nonpdep_from_seed);
+			rString = generatePDepODEReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure);
 			
 			nParameter = 0;
 			if (parameterInfor != 0) {
@@ -562,16 +566,16 @@ public class JDASPK extends JDAS {
                     getConcentrationFlags(p_reactionModel);        
                 }
                 catch (IOException e) {
-                    System.err.println("Problem writing Solver Input File!");
-                    e.printStackTrace();
+                    Logger.error("Problem writing Solver Input File!");
+                    Logger.logStackTrace(e);
                 }
        //this should be the end of the input file
         try{
             bw.close();
         }
         catch (IOException e) {
-            System.err.println("Problem closing Solver Input File!");
-            e.printStackTrace();
+            Logger.error("Problem closing Solver Input File!");
+            Logger.logStackTrace(e);
         }
         int idid=0;
         
@@ -599,8 +603,8 @@ public class JDASPK extends JDAS {
 	//		fw.write(outputString.toString());
 	//		fw.close();
 	//	} catch (IOException e) {
-	//		System.err.println("Problem writing Solver Input File!");
-        //			e.printStackTrace();
+	//		Logger.error("Problem writing Solver Input File!");
+        //			Logger.logStackTrace(e);
 	//	}
 		Global.writeSolverFile +=(System.currentTimeMillis()-startTime)/1000/60;
 		//run the solver on the input file
@@ -626,12 +630,15 @@ public class JDASPK extends JDAS {
         	int exitValue = 4;
         	exitValue = ODESolver.waitFor();
         	//System.out.println(br.readLine() + exitValue);
-        	
+        	is.close();
+		ODESolver.getErrorStream().close();
+		ODESolver.getOutputStream().close();
         }
         catch (Exception e) {
         	String err = "Error in running ODESolver \n";
         	err += e.toString();
-        	e.printStackTrace();
+        	Logger.logStackTrace(e);
+			Logger.error(err);
         	System.exit(0);
         }
         
@@ -646,7 +653,7 @@ public class JDASPK extends JDAS {
         	for (int k=0; k<p_numSteps; k++){
         		line = br.readLine();
                     if (Double.parseDouble(line.trim()) != neq) {
-                            System.out.println("ODESolver didnt generate all species result");
+                            Logger.critical("ODESolver didnt generate all species result");
                             System.exit(0);
                     }
                     presentTime = Double.parseDouble(br.readLine().trim());
@@ -674,7 +681,7 @@ public class JDASPK extends JDAS {
                     LinkedHashMap speStatus = new LinkedHashMap();
                     double [] senStatus = new double[nParameter*nState];
 
-                    System.out.println("After ODE: from " + String.valueOf(beginT.time) + " SEC to " + String.valueOf(endT.time) + "SEC");
+                    Logger.info(String.format("After ODE: from %10.4e s to %10.4e s", beginT.time, endT.time));
                     speStatus = generateSpeciesStatus(p_reactionModel, y, yprime, nParameter);
                     senStatus = generateSensitivityStatus(p_reactionModel,y,yprime,nParameter);
                     SystemSnapshot sss = new SystemSnapshot(endT, speStatus, senStatus, p_beginStatus.getTemperature(), p_beginStatus.getPressure());
@@ -716,7 +723,7 @@ public class JDASPK extends JDAS {
         catch (IOException e) {
         	String err = "Error in reading Solver Output File! \n";
         	err += e.toString();
-        	e.printStackTrace();
+        	Logger.logStackTrace(e);
         	System.exit(0);
         }
         Global.readSolverFile += (System.currentTimeMillis() - startTime)/1000/60;

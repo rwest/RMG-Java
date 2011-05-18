@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -38,6 +38,7 @@ import jing.chem.Species;
 import jing.chem.ChemGraph;
 import jing.chemUtil.Graph;
 import jing.param.Temperature;
+import jing.rxnSys.Logger;
 
 //## package jing::rxn
 
@@ -866,7 +867,7 @@ public class Structure {
         	numSi -= cg.getSiliconNumber();
         }
         if (numC!=0 || numH!=0 || numO!=0 || numS!=0 || numSi!=0) {
-        	System.out.println("Reaction is not balanced: " + toString());
+        	Logger.error("Reaction is not balanced: " + toString());
         	return false;
         }
         

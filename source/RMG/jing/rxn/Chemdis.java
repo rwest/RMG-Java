@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -190,8 +190,12 @@ public class Chemdis implements PDepKineticsEstimator {
 				//System.out.println(line);
 			}
 			int exitValue = chemdis.waitFor();
+			ips.close();
+			chemdis.getErrorStream().close();
+			chemdis.getOutputStream().close();
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			System.out.println("Error in run chemdis!");
 			System.exit(0);
 		}
@@ -660,6 +664,7 @@ public class Chemdis implements PDepKineticsEstimator {
         	f.renameTo(newFile);
         }
         catch (Exception e) {
+			e.printStackTrace();
         	System.out.println("Wrong output from chemdis!");
         	System.out.println(e.getMessage());
         	System.exit(0);

@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -61,6 +61,18 @@ public class LJData extends LJGroupData {
     		" Pc=" + String.format("%8.3f", calculatePc()) + "bar" +
     		" Vc=" + String.format("%8.3f", calculateVc()) + "cm3/mol" +
     		" Tb=" + String.format("%8.3f", calculateTb()) + "K";
+    }
+
+    public String deltaToString() {
+
+        String s = "";
+        s = s + String.valueOf(dTc) + '\t';
+        s = s + String.valueOf(dPc) + '\t';
+        s = s + String.valueOf(dVc) + '\t';
+        s = s + String.valueOf(dTb);
+
+        return s;
+        //#]
     }
     
     //calculates Tc in K

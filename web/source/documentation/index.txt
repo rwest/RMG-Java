@@ -18,20 +18,23 @@ Contents
    :maxdepth: 1
 
    introduction
-   installation
+   installation/index
    conditionfile
+   liquids
    examples
    GraphicalUserInterface
    kinetics_libraries
    running
    analyzing
    modification
+   oxygen
    thermo
    transport
    reactions
    speciesIDs
    theory/index
    faq
+   troubleshooting
    ../credits
 
 ..   BuildingDocumentation

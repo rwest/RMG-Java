@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import jing.rxnSys.Logger;
 
 public class FrequencyGroups{//gmagoon 111708: removed "implements GeneralGAPP"
 
@@ -80,20 +81,20 @@ public class FrequencyGroups{//gmagoon 111708: removed "implements GeneralGAPP"
 
                     int nFreq = 3 * atoms - 5 - rotor - degeneracy - linearity;
                     if (nFreq < 0) {
-                            System.out.println(species.getFullName() +
+                            Logger.debug(species.getFullName() +
                                     " is overspecified: " +
                                             Integer.toString(degeneracy) + " harmonic oscillators and " +
                                             Integer.toString(rotor) + " internal rotors are specified, but only " +
                                             Integer.toString(3 * atoms - 5 - linearity) + " modes are allowed.");
                             // If possible, turn off internal rotors until the number of fitted frequencies is zero
                             if (nFreq + rotor >= 0) {
-                                    System.out.println("Turning off " + Integer.toString(Math.abs(nFreq)) + 
+                                    Logger.debug("Turning off " + Integer.toString(Math.abs(nFreq)) +
                                                     " internal rotors.");
                                     rotor += nFreq;
                             }
                             else {
                                     // Turn off functional groups until the system is underspecified
-                                    System.out.println("Turning off functional groups to make problem underspecified.");
+                                    Logger.debug("Turning off functional groups to make problem underspecified.");
                                     while (nFreq < 0) {
                                             removeFunctionalGroup(groupCount);
                                             degeneracy = getDegeneracy(groupCount);
@@ -138,7 +139,7 @@ public class FrequencyGroups{//gmagoon 111708: removed "implements GeneralGAPP"
         }
         catch (IOException e) {
             System.err.println("Problem writing frequency estimation input file!");
-            e.printStackTrace();
+            Logger.logStackTrace(e);
         }
 		
 		touchOutputFile();
@@ -160,22 +161,26 @@ public class FrequencyGroups{//gmagoon 111708: removed "implements GeneralGAPP"
 					frankieOutputFlag =  Integer.parseInt( line.substring(line.length()-1) );
             }
             int exitVal = freqProc.waitFor();
+	    is.close();
+	    freqProc.getErrorStream().close();
+	    freqProc.getOutputStream().close();
 		
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
             String err = "Error in running frequency estimation process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.error(err);
         }
 		  
 		  if (frankieOutputFlag == 4) 
 			  frankieSuccess = true;
 		  if (frankieOutputFlag == 8) 
-			  System.err.println("Frankie exceeded maximum number of iterations");	  
+			  Logger.verbose("Frankie exceeded maximum number of iterations");
 		  
 		  if (!frankieSuccess) {
-			  System.err.println("Frankie.exe wasn't fully successful: "+ String.format("species %2$d had output flag %1$d",frankieOutputFlag,species.getID() ));
-			  System.err.println(String.format("Saving input file as 'frankie/dat.%d.%d' should you wish to debug.",frankieOutputFlag,species.getID() ));	
+			  Logger.verbose("Frankie.exe wasn't fully successful: "+ String.format("species %2$d had output flag %1$d",frankieOutputFlag,species.getID() ));
+			  Logger.verbose(String.format("Saving input file as 'frankie/dat.%d.%d' should you wish to debug.",frankieOutputFlag,species.getID() ));
 			  franklInput.renameTo( new File(String.format("frankie/dat.%d.%d",frankieOutputFlag,species.getID() )) );			  
 		  }
 
@@ -248,14 +253,14 @@ public class FrequencyGroups{//gmagoon 111708: removed "implements GeneralGAPP"
 			fr.close();
         }
         catch (IOException e) {
-                System.err.println("Problem reading frequency estimation output file!");
-				System.out.println(e.getMessage());
-                e.printStackTrace();
+                Logger.critical("Problem reading frequency estimation output file!");
+				Logger.critical(e.getMessage());
+                Logger.logStackTrace(e);
 				System.exit(0);
         }
 		catch (NullPointerException e) {
-                System.err.println("Problem reading frequency estimation output file!");
-                e.printStackTrace();           
+                Logger.error("Problem reading frequency estimation output file!");
+                Logger.logStackTrace(e);           
         }
         
 		// Rename input and output files
@@ -309,10 +314,14 @@ public class FrequencyGroups{//gmagoon 111708: removed "implements GeneralGAPP"
         String[] orderedInputGroups={"RsCH3","RdCH2","CtCH","RsCH2sR","CdCHsR","Aldehyde","Cumulene","Ketene","CtCsR","RsCHsR2","CdCsR2","Ketone","RsCsR3","RsCH2r","RdCHr","RsCHrsR","CdCrsR","OdCrsR","RsCrsR2","Alcohol","Ether","ROOH","ROOR","Peroxy"};//this should contain the group names (or keys names) used by Franklin's frequency estimation code in the order that his input format requires them
         for(int i=1;i<=orderedInputGroups.length;i++){
             String inputGroup=orderedInputGroups[i-1];
-            if(groupCountMap.containsKey(inputGroup))
+            if(groupCountMap.containsKey(inputGroup)) {
+                p_chemGraph.appendFreqComments(orderedInputGroups[i-1] + ":" + groupCountMap.get(inputGroup));
                 result.add((Integer)(groupCountMap.get(inputGroup)));
-            else
+            }
+            else {
+                p_chemGraph.appendFreqComments(orderedInputGroups[i-1] + ":0");
                 result.add(0);
+            }
         }
         
         return result;
@@ -340,12 +349,12 @@ public class FrequencyGroups{//gmagoon 111708: removed "implements GeneralGAPP"
 			output.createNewFile();
 		}
 		catch(IOException e) {
-			System.out.println("Error: Unable to touch file \"frankie/rho_input\".");
-			System.out.println(e.getMessage());
+			Logger.critical("Error: Unable to touch file \"frankie/rho_input\".");
+			Logger.critical(e.getMessage());
 			System.exit(0);
 		}
 		catch(Exception e) {
-			System.out.println(e.getMessage());
+			Logger.error(e.getMessage());
 		}
 	}
 

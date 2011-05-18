@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -63,6 +63,7 @@ import jing.rxnSys.RateBasedRME;
 import jing.rxnSys.ReactionModelGenerator;
 import jing.rxnSys.ReactionSystem;
 import jing.rxnSys.TemperatureModel;
+import jing.rxn.TemplateReaction;
 
 public class PopulateReactions {
 	/**
@@ -388,7 +389,7 @@ public class PopulateReactions {
 			        		for (int numSpecies=0; numSpecies<species.size(); ++numSpecies) {
 			        			Species currentSpec = (Species)species.get(numSpecies);
 			        			if (!allSpeciesInNetwork.contains(currentSpec)) {
-			        				listOfReactions += "!\t" + String.format(formatSpeciesName,currentSpec.getFullName()) + currentSpec.getThermoData().toString() + currentSpec.getThermoData().getComments() + "\n";
+			        				listOfReactions += "!\t" + String.format(formatSpeciesName,currentSpec.getFullName()) + currentSpec.getThermoData().toString() + currentSpec.getThermoData().getSource() + "\n";
 			        				allSpeciesInNetwork.add(currentSpec);
 			        			}
 			        		}
@@ -571,7 +572,12 @@ public class PopulateReactions {
 			Species species2 = species1;
 			while (iter2.hasNext()) 
 				species2 = (Species)iter2.next();
-			String rxnFamilyName = r.getReverseReaction().getReactionTemplate().getName();
+
+			String rxnFamilyName = "";
+			if (r instanceof TemplateReaction){
+			    rxnFamilyName = ((TemplateReaction)r.getReverseReaction()).getReactionTemplate().getName();
+			}
+
 			LinkedHashSet speciesHashSet = new LinkedHashSet();
 			speciesHashSet.add(species1);
 			reverseReactions = rtLibrary.react(speciesHashSet, species2, rxnFamilyName);

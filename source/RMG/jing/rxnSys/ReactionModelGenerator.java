@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -52,32 +52,26 @@ import jing.chemParser.*;
 //## class ReactionModelGenerator
 public class ReactionModelGenerator {
 	
-    protected LinkedList timeStep;		//## attribute timeStep
-    protected ReactionModel reactionModel;      //gmagoon 9/24/07
-    protected String workingDirectory;		//## attribute workingDirectory
-	
-	// protected ReactionSystem reactionSystem;
-    protected LinkedList reactionSystemList; //10/24/07 gmagoon: changed from reactionSystem to reactionSystemList
-    
-    protected int paraInfor;//svp
-    protected boolean error;//svp
-    protected boolean sensitivity;//svp
-    protected LinkedList species;//svp
-	//  protected InitialStatus initialStatus;//svp
-    protected LinkedList initialStatusList; //10/23/07 gmagoon: changed from initialStatus to initialStatusList
-    protected double rtol;//svp
-    protected static double atol;
-    protected PrimaryKineticLibrary primaryKineticLibrary;//9/24/07 gmagoon
-    protected ReactionLibrary ReactionLibrary;
-    protected ReactionModelEnlarger reactionModelEnlarger;//9/24/07 gmagoon
-    protected LinkedHashSet speciesSeed;//9/24/07 gmagoon;
-    protected ReactionGenerator reactionGenerator;//9/24/07 gmagoon
-    protected LibraryReactionGenerator lrg;// = new LibraryReactionGenerator();//9/24/07 gmagoon: moved from ReactionSystem.java;10/4/07 gmagoon: postponed initialization of lrg til later
-    //10/23/07 gmagoon: added additional variables
+    protected LinkedList               timeStep;
+    protected ReactionModel            reactionModel;
+    protected String                   workingDirectory;
+	protected LinkedList               reactionSystemList;
+    protected int                      paraInfor;
+    protected boolean                  error;
+    protected boolean                  sensitivity;
+    protected LinkedList               species;
+    protected LinkedList               initialStatusList;
+    protected double                   rtol;
+    protected static double            atol;
+    protected PrimaryKineticLibrary    primaryKineticLibrary;
+    protected ReactionLibrary          ReactionLibrary;
+    protected ReactionModelEnlarger    reactionModelEnlarger;
+    protected LinkedHashSet            speciesSeed;
+    protected ReactionGenerator        reactionGenerator;
+    protected LibraryReactionGenerator lrg;
     protected LinkedList tempList;
     protected LinkedList presList;
-    protected LinkedList validList;//10/24/07 gmagoon: added
-    //10/25/07 gmagoon: moved variables from modelGeneration()
+    protected LinkedList validList;
     protected LinkedList initList = new LinkedList();
     protected LinkedList beginList = new LinkedList();
     protected LinkedList endList = new LinkedList();
@@ -87,25 +81,19 @@ public class ReactionModelGenerator {
     protected LinkedList currentPList = new LinkedList();
     protected LinkedList conditionChangedList = new LinkedList();
     protected LinkedList reactionChangedList = new LinkedList();
-    protected int numConversions;//5/6/08 gmagoon: moved from initializeReactionSystem() to be an attribute so it can be accessed by modelGenerator()
-    protected String equationOfState;
+    protected int        numConversions;
+    protected String     equationOfState;
     // 24Jun2009 MRH: variable stores the first temperature encountered in the condition.txt file
     //	This temperature is used to select the "best" kinetics from the rxn library
     protected static Temperature temp4BestKinetics;
 
-    // Added by AJ on July 12, 2010
     protected static boolean useDiffusion;
-    //
-
-    // Added by AJ on November 29, 2010
     protected static boolean useSolvation;
-    //
-
+	
     protected SeedMechanism seedMechanism = null;
     protected PrimaryThermoLibrary primaryThermoLibrary;
     protected PrimaryTransportLibrary primaryTransportLibrary;
 
-    //Added by AJ on December 21, 2010
     protected PrimaryAbrahamLibrary primaryAbrahamLibrary;
     protected static SolventData solvent;
     protected SolventLibrary solventLibrary;
@@ -147,7 +135,7 @@ public class ReactionModelGenerator {
         try {
         	String initialConditionFile = System.getProperty("jing.rxnSys.ReactionModelGenerator.conditionFile");
         	if (initialConditionFile == null) {
-        		System.out.println("undefined system property: jing.rxnSys.ReactionModelGenerator.conditionFile");
+        		Logger.critical("undefined system property: jing.rxnSys.ReactionModelGenerator.conditionFile");
         		System.exit(0);
         	}
 			//double sandeep = getCpuTime();
@@ -410,10 +398,10 @@ public class ReactionModelGenerator {
             if (line.startsWith("EquationOfState")) {
                 StringTokenizer st = new StringTokenizer(line);
         		String name = st.nextToken();
-        		String eosType = st.nextToken();
-                if (eosType.equals("Liquid")) {
+        		String eosType = st.nextToken().toLowerCase();
+                if (eosType.equals("liquid")) {
                     equationOfState="Liquid";
-                    System.out.println("Equation of state: Liquid. Relying on concentrations in input file to get density correct; not checking PV=NRT");
+                    Logger.info("Equation of state: Liquid. Relying on concentrations in input file to get density correct; not checking PV=NRT");
                 }
                 line = ChemParser.readMeaningfulLine(reader, true);
             }
@@ -437,14 +425,14 @@ public class ReactionModelGenerator {
         		StringTokenizer st = new StringTokenizer(line);
         		String name = st.nextToken();
         		String solvationOnOff = st.nextToken().toLowerCase();
-        		if (solvationOnOff.startsWith("on")) {
+        		if (solvationOnOff.equals("on")) {
         			setUseSolvation(true);
                     Species.useSolvation = true;
                     readAndMakePAL();
-                    Integer hash_int = solvationOnOff.indexOf("/");
-                    String solventname = solvationOnOff.substring(hash_int+1);
+                    String solventname = st.nextToken().toLowerCase();
                     readAndMakeSL(solventname);
-                   
+					System.out.println(String.format(
+						"Using solvation corrections to thermochemsitry with solvent properties of %s",solventname));
         		} else if (solvationOnOff.startsWith("off")) {
                     setUseSolvation(false);
         			Species.useSolvation = false;
@@ -459,11 +447,12 @@ public class ReactionModelGenerator {
         		StringTokenizer st = new StringTokenizer(line);
         		String name = st.nextToken();
         		String diffusionOnOff = st.nextToken().toLowerCase();
-        		if (diffusionOnOff.startsWith("on")) {
-        			Integer hash_int = diffusionOnOff.indexOf("/");
-                    String viscosity_str = diffusionOnOff.substring(hash_int+1);
+        		if (diffusionOnOff.equals("on")) {
+                    String viscosity_str = st.nextToken();
                     viscosity = Double.parseDouble(viscosity_str);
                     setUseDiffusion(true);
+					System.out.println(String.format(
+						"Using diffusion corrections to kinetics with solvent viscosity of %.3g Pa.s.",viscosity));
         		} else if (diffusionOnOff.equals("off")) {
         			setUseDiffusion(false);
         		}
@@ -497,7 +486,7 @@ public class ReactionModelGenerator {
 						}
 					}
 					else{
-						System.out.println("condition.txt: Can't find 'QMForCyclicsOnly:' field");
+						Logger.critical("condition.txt: Can't find 'QMForCyclicsOnly:' field");
 						System.exit(0);
 					}
 					line=ChemParser.readMeaningfulLine(reader, true);
@@ -508,7 +497,7 @@ public class ReactionModelGenerator {
 						
 					}
 					else{
-						System.out.println("condition.txt: Can't find 'MaxRadNumForQM:' field");
+						Logger.critical("condition.txt: Can't find 'MaxRadNumForQM:' field");
 						System.exit(0);
 					}
         		}//otherwise, the flag useQM will remain false by default and the traditional group additivity approach will be used
@@ -719,14 +708,6 @@ public class ReactionModelGenerator {
 //			if (!PDepRateConstant.getMode().name().equals("CHEBYSHEV") &&
 //					!PDepRateConstant.getMode().name().equals("PDEPARRHENIUS"))
 //				line = ChemParser.readMeaningfulLine(reader);
-			if (line.startsWith("IncludeSpecies")) {
-				StringTokenizer st = new StringTokenizer(line);
-				String iS = st.nextToken();
-				String fileName = st.nextToken();
-				HashSet includeSpecies = readIncludeSpecies(fileName);
-				((RateBasedRME)reactionModelEnlarger).addIncludeSpecies(includeSpecies);
-				line = ChemParser.readMeaningfulLine(reader, true);
-			}
 			
 			// read in finish controller
         	if (line.startsWith("FinishController")) {
@@ -871,7 +852,7 @@ public class ReactionModelGenerator {
 				    termTol = Double.parseDouble(st.nextToken());
 			    }
 			    else {
-				    System.out.println("Cannot find TerminationTolerance in condition.txt");
+				    Logger.critical("Cannot find TerminationTolerance in condition.txt");
 				    System.exit(0);
 			    }
 			    line = ChemParser.readMeaningfulLine(reader, true);
@@ -881,7 +862,7 @@ public class ReactionModelGenerator {
 				    edgeTol = Double.parseDouble(st.nextToken());
 			    }
 			    else {
-				    System.out.println("Cannot find PruningTolerance in condition.txt");
+				    Logger.critical("Cannot find PruningTolerance in condition.txt");
 				    System.exit(0);
 			    }
 			    line = ChemParser.readMeaningfulLine(reader, true);
@@ -891,7 +872,7 @@ public class ReactionModelGenerator {
 				    minSpeciesForPruning = Integer.parseInt(st.nextToken());
 			    }
 			    else {
-				    System.out.println("Cannot find MinSpeciesForPruning in condition.txt");
+				    Logger.critical("Cannot find MinSpeciesForPruning in condition.txt");
 				    System.exit(0);
 			    }
 			    line = ChemParser.readMeaningfulLine(reader, true);
@@ -901,7 +882,7 @@ public class ReactionModelGenerator {
 				    maxEdgeSpeciesAfterPruning = Integer.parseInt(st.nextToken());
 			    }
 			    else {
-				    System.out.println("Cannot find MaxEdgeSpeciesAfterPruning in condition.txt");
+				    Logger.critical("Cannot find MaxEdgeSpeciesAfterPruning in condition.txt");
 				    System.exit(0);
 			    }
 
@@ -914,9 +895,9 @@ public class ReactionModelGenerator {
 				bw.write("UnitsOfEa: " + EaUnits);
 				bw.newLine();
 			    } catch (FileNotFoundException ex) {
-				ex.printStackTrace();
+				Logger.logStackTrace(ex);
 			    } catch (IOException ex) {
-				ex.printStackTrace();
+				Logger.logStackTrace(ex);
 			    } finally {
 				try {
 				    if (bw != null) {
@@ -924,7 +905,7 @@ public class ReactionModelGenerator {
 					bw.close();
 				    }
 				} catch (IOException ex) {
-				    ex.printStackTrace();
+				    Logger.logStackTrace(ex);
 				}
 			    }
 
@@ -1010,7 +991,7 @@ public class ReactionModelGenerator {
 					
 					if (line.startsWith("Display sensitivity information") ){
 						line = ChemParser.readMeaningfulLine(reader, true);
-						System.out.println(line);
+						Logger.info(line);
 						while (!line.equals("END")){
 							st = new StringTokenizer(line);
 							String name = st.nextToken();
@@ -1088,10 +1069,9 @@ public class ReactionModelGenerator {
 			if (line.startsWith("SeedMechanism:")) {
 				line = ChemParser.readMeaningfulLine(reader, true);
 				while (!line.equals("END")) {                     		
-					String[] tempString = line.split("Name: ");
-					String name = tempString[tempString.length-1].trim();
+                                    String name = extractLibraryName(line);
 					line = ChemParser.readMeaningfulLine(reader, true);
-					tempString = line.split("Location: ");
+					String[] tempString = line.split("Location: ");
 					String location = tempString[tempString.length-1].trim();
 					line = ChemParser.readMeaningfulLine(reader, true);
 					tempString = line.split("GenerateReactions: ");
@@ -1101,13 +1081,13 @@ public class ReactionModelGenerator {
 						generateStr.equalsIgnoreCase("on") ||
 						generateStr.equalsIgnoreCase("true")){
 						generate = true;
-						System.out.println("Will generate cross-reactions between species in seed mechanism " + name);
+						Logger.info("Will generate cross-reactions between species in seed mechanism " + name);
 					} else if(generateStr.equalsIgnoreCase("no") ||
 							  generateStr.equalsIgnoreCase("off") ||
 							  generateStr.equalsIgnoreCase("false")) {
 						generate = false;
-						System.out.println("Will NOT initially generate cross-reactions between species in seed mechanism "+ name);
-						System.out.println("This may have unintended consequences");			   
+						Logger.info("Will NOT initially generate cross-reactions between species in seed mechanism "+ name);
+						Logger.info("This may have unintended consequences");
 					}
 					else {
 						System.err.println("Input file invalid");
@@ -1124,7 +1104,7 @@ public class ReactionModelGenerator {
 						getSeedMechanism().appendSeedMechanism(name, path, generate, false);
 					line = ChemParser.readMeaningfulLine(reader, true);
 				}
-				if (getSeedMechanism() != null)	System.out.println("Seed Mechanisms in use: " + getSeedMechanism().getName());
+				if (getSeedMechanism() != null)	Logger.info("Seed Mechanisms in use: " + getSeedMechanism().getName());
 				else setSeedMechanism(null);
 			} else throw new InvalidSymbolException("Error reading condition.txt file: "
 													+ "Could not locate SeedMechanism field");
@@ -1272,10 +1252,10 @@ public class ReactionModelGenerator {
 						
 						FinishController fc = new FinishController(finishController.getTerminationTester(), finishController.getValidityTester());//10/31/07 gmagoon: changed to create new finishController instance in each case (apparently, the finish controller becomes associated with reactionSystem in setFinishController within ReactionSystem); alteratively, could use clone, but might need to change FinishController to be "cloneable"
 						// FinishController fc = new FinishController(termTestCopy, finishController.getValidityTester());
-						reactionSystemList.add(new ReactionSystem(tm, pm, reactionModelEnlarger, fc, ds, getPrimaryKineticLibrary(), getReactionGenerator(), getSpeciesSeed(), is, getReactionModel(),lrg, i, equationOfState)); 
 						i++;//10/30/07 gmagoon: added
-						System.out.println("Created reaction system "+i+"\n");
-						System.out.println((initialStatusList.get(i-1)).toString() + "\n");
+						Logger.info("Creating reaction system "+i);
+						reactionSystemList.add(new ReactionSystem(tm, pm, reactionModelEnlarger, fc, ds, getPrimaryKineticLibrary(), getReactionGenerator(), getSpeciesSeed(), is, getReactionModel(),lrg, i, equationOfState));
+						Logger.info((initialStatusList.get(i-1)).toString() + "\n");
 					}
 				}
 			}
@@ -1286,6 +1266,8 @@ public class ReactionModelGenerator {
         	System.err.println("Error reading reaction system initialization file.");
         	throw new IOException("Input file error: " + e.getMessage());
         }
+
+        Logger.info("");
     }
     public void setReactionModel(ReactionModel p_ReactionModel) {
         reactionModel = p_ReactionModel;
@@ -1318,6 +1300,7 @@ public class ReactionModelGenerator {
 		}
         
         initializeCoreEdgeReactionModel();//10/4/07 gmagoon: moved before initializeReactionSystem; 11/3-4/07 gmagoon: probably reverted on or before 10/10/07
+
         //10/24/07 gmagoon: changed to use reactionSystemList
 		//       LinkedList initList = new LinkedList();//10/25/07 gmagoon: moved these variables to apply to entire class
 		//       LinkedList beginList = new LinkedList();
@@ -1394,15 +1377,22 @@ public class ReactionModelGenerator {
 				rs.appendUnreactedSpeciesStatus((InitialStatus)initialStatusList.get(i), rs.getPresentTemperature());
 	        }
         }
+
+        printModelSize();
+		
+		// Write Chemkin input file only for the LAST reaction system (preserving old behaviour from when it used to be overwritten N times).
+		Chemkin.writeChemkinInputFile((ReactionSystem)reactionSystemList.getLast());
+
+        Logger.info(String.format("Running time: %.3f min", + (System.currentTimeMillis()-Global.tAtInitialization)/1000./60.));
+        printMemoryUsed();
+		Logger.flush();
         
         //10/24/07 gmagoon: note: each element of for loop could be done in parallel if desired; some modifications would be needed
         for (Integer i = 0; i<reactionSystemList.size();i++) {
             ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
             ReactionTime begin = (ReactionTime)beginList.get(i);
             ReactionTime end = (ReactionTime)endList.get(i);
-            LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
-            endList.set(i,rs.solveReactionSystem(begin, end, true, true, true, iterationNumber-1,seedmechnonpdeprxns));
-            Chemkin.writeChemkinInputFile(rs, seedmechnonpdeprxns);
+            endList.set(i,rs.solveReactionSystem(begin, end, true, true, true, iterationNumber-1));
             boolean terminated = rs.isReactionTerminated();
             terminatedList.add(terminated);
             if(!terminated)
@@ -1420,8 +1410,6 @@ public class ReactionModelGenerator {
         }
         writeDictionary(getReactionModel());
         //System.exit(0);
-		
-		printModelSize();
 		
 		StringBuilder print_info = Global.diagnosticInfo;
 		print_info.append("\nMolecule \t Flux\t\tTime\t \t\t \t Core \t \t Edge \t \t memory\n");
@@ -1441,10 +1429,8 @@ public class ReactionModelGenerator {
 		
 		//System.exit(0);
 		SpeciesDictionary dictionary = SpeciesDictionary.getInstance();
-		System.out.println("Species dictionary size: "+dictionary.size());
+		Logger.debug("Species dictionary size: "+dictionary.size());
 		//boolean reactionChanged = false;//10/24/07 gmagoon: I don't know if this is even required, but I will change to use reactionChangedList (I put analogous line of code for list in above for loop); update: yes, it is required; I had been thinking of conditionChangedList
-		
-		double tAtInitialization = Global.tAtInitialization;
 		
 		//10/24/07: changed to use allTerminated and allValid	
         // step 2: iteratively grow reaction system
@@ -1480,9 +1466,18 @@ public class ReactionModelGenerator {
 						rs.initializePDepNetwork();
 					}
 					//reactionSystem.initializePDepNetwork();
-				}  
+				}
 				
-				pt = System.currentTimeMillis();
+				printModelSize();
+				
+				// Write Chemkin input file only for the LAST reaction system (preserving old behaviour from when it used to be overwritten N times).
+				Chemkin.writeChemkinInputFile((ReactionSystem)reactionSystemList.getLast());
+
+                Logger.info(String.format("Running time: %.3f min", + (System.currentTimeMillis()-Global.tAtInitialization)/1000./60.));
+				printMemoryUsed();
+				Logger.flush();
+
+                pt = System.currentTimeMillis();
 				//10/24/07 gmagoon: changed to use reactionSystemList
 				for (Iterator iter = reactionSystemList.iterator(); iter.hasNext(); ) {
 					ReactionSystem rs = (ReactionSystem)iter.next();
@@ -1532,20 +1527,13 @@ public class ReactionModelGenerator {
 					boolean conditionChanged = (Boolean)conditionChangedList.get(i);
 					ReactionTime begin = (ReactionTime)beginList.get(i);
 					ReactionTime end = (ReactionTime)endList.get(i);
-                                        LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
-					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, conditionChanged, iterationNumber-1,seedmechnonpdeprxns));
+					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, conditionChanged, iterationNumber-1));
 					//end = reactionSystem.solveReactionSystem(begin, end, false, reactionChanged, conditionChanged, iterationNumber-1);
 				}
 				solverMin = solverMin + (System.currentTimeMillis()-startTime)/1000/60;
 				
 				startTime = System.currentTimeMillis();
-				for (Integer i = 0; i<reactionSystemList.size();i++) {
-					// we over-write the chemkin file each time, so only the LAST reaction system is saved
-					// i.e. if you are using RATE for pdep, only the LAST pressure is used.
-					ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-                                        LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
-					Chemkin.writeChemkinInputFile(rs,seedmechnonpdeprxns);
-				}
+
 				//9/1/09 gmagoon: if we are using QM, output a file with the CHEMKIN name, the RMG name, the (modified) InChI, and the (modified) InChIKey
 				if (ChemGraph.useQM){
 					writeInChIs(getReactionModel());                    
@@ -1577,23 +1565,21 @@ public class ReactionModelGenerator {
 				}
 				
 				//10/24/07 gmagoon: changed to use reactionSystemList
+                Logger.info("");
 				for (Integer i = 0; i<reactionSystemList.size();i++) {
 					ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-					System.out.println("For reaction system: "+(i+1)+" out of "+reactionSystemList.size());
-					System.out.println("At this time: " + ((ReactionTime)endList.get(i)).toString());
+					Logger.info(String.format("For reaction system: %d out of %d", i+1, reactionSystemList.size()));
+					Logger.info(String.format("At this time: %10.4e s", ((ReactionTime)endList.get(i)).getTime()));
 					Species spe = SpeciesDictionary.getSpeciesFromID(getLimitingReactantID());
 					double conv = rs.getPresentConversion(spe);
-					System.out.print("Conversion of " + spe.getFullName()  + " is:");
-					System.out.println(conv);
+					Logger.info(String.format("Conversion of %s is: %-10.4g", spe.getFullName(), conv));
 				}
-				
-			    System.out.println("Running Time is: " + String.valueOf((System.currentTimeMillis()-tAtInitialization)/1000/60) + " minutes.");
-				printModelSize();
-				printMemoryUsed();
+				Logger.info("");
 
-				startTime = System.currentTimeMillis();
+			    startTime = System.currentTimeMillis();
 				double mU = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-				double gc = (System.currentTimeMillis()-startTime)/1000/60;
+				Logger.info("");
+                double gc = (System.currentTimeMillis()-startTime)/1000./60.;
 				
 				startTime = System.currentTimeMillis();
 				//10/24/07 gmagoon: updating to use reactionSystemList
@@ -1665,8 +1651,7 @@ public class ReactionModelGenerator {
 					boolean conditionChanged = (Boolean)conditionChangedList.get(i);
 					ReactionTime begin = (ReactionTime)beginList.get(i);
 					ReactionTime end = (ReactionTime)endList.get(i);
-                                        LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
-					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, false, iterationNumber-1,seedmechnonpdeprxns));
+					endList.set(i,rs.solveReactionSystem(begin, end, false, reactionChanged, false, iterationNumber-1));
 					// end = reactionSystem.solveReactionSystem(begin, end, false, reactionChanged, false, iterationNumber-1);
 				}
 				solverMin = solverMin + (System.currentTimeMillis()-startTime)/1000/60;
@@ -1691,55 +1676,21 @@ public class ReactionModelGenerator {
 				terminatedList.set(i,terminated);
 				if(!terminated){
 					allTerminated = false;
-					System.out.println("Reaction System "+(i+1)+" has not reached its termination criterion");
+					Logger.error("Reaction System "+(i+1)+" has not reached its termination criterion");
 					if (rs.isModelValid()&& runKillableToPreventInfiniteLoop(intermediateSteps, iterationNumber)) {
-						System.out.println("although it seems to be valid (complete), so it was not interrupted for being invalid.");
-						System.out.println("This probably means there was an error with the ODE solver, and we risk entering an endless loop.");
-						System.out.println("Stopping.");
+						Logger.info("although it seems to be valid (complete), so it was not interrupted for being invalid.");
+						Logger.info("This probably means there was an error with the ODE solver, and we risk entering an endless loop.");
+						Logger.info("Stopping.");
 						throw new Error();
 					}
 				}
 			}
-			//     //10/24/07 gmagoon: changed to use reactionSystemList
-			//     allTerminated = true;
-			//     allValid = true;
-			//  	for (Integer i = 0; i<reactionSystemList.size();i++) {
-            //        ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-            //        boolean terminated = rs.isReactionTerminated();
-            //        terminatedList.set(i,terminated);
-            //        if(!terminated)
-            //            allTerminated = false;
-            //        boolean valid = rs.isModelValid();     
-            //        validList.set(i,valid);
-            //        if(!valid)
-            //            allValid = false;
-            //    }
-            //    //terminated = reactionSystem.isReactionTerminated();
-            //    //valid = reactionSystem.isModelValid();
 			
 			//10/24/07 gmagoon: changed to use reactionSystemList, allValid	
         	if (allValid) {
-				//10/24/07 gmagoon: changed to use reactionSystemList
-				for (Integer i = 0; i<reactionSystemList.size();i++) {
-					ReactionSystem rs = (ReactionSystem)reactionSystemList.get(i);
-					System.out.println("For reaction system: "+(i+1)+" out of "+reactionSystemList.size());
-					System.out.println("At this reaction time: " + ((ReactionTime)endList.get(i)).toString());
-					Species spe = SpeciesDictionary.getSpeciesFromID(getLimitingReactantID());
-					double conv = rs.getPresentConversion(spe);
-					System.out.print("Conversion of " + spe.getFullName()  + " is:");
-					System.out.println(conv);
-				}
-        		//System.out.println("At this time: " + end.toString());
-        		//Species spe = SpeciesDictionary.getSpeciesFromID(1);
-        		//double conv = reactionSystem.getPresentConversion(spe);
-        		//System.out.print("current conversion = ");
-        		//System.out.println(conv);
-				
-        		printMemoryUsed();
-				
-				printModelSize();
-				
-        	}
+                Logger.info("Model generation completed!");
+                printModelSize();
+            }
 			vTester = vTester + (System.currentTimeMillis()-startTime)/1000/60;//5/6/08 gmagoon: for case where intermediateSteps = false, this will use startTime declared just before intermediateSteps loop, and will only include termination testing, but no validity testing
         }
         
@@ -1747,7 +1698,7 @@ public class ReactionModelGenerator {
         
 		
         if (paraInfor != 0){
-			System.out.println("Model Generation performed. Now generating sensitivity data.");
+			Logger.info("Model Generation performed. Now generating sensitivity data.");
 			//10/24/07 gmagoon: updated to use reactionSystemList
 			LinkedList dynamicSimulator2List = new LinkedList();
 			for (Integer i = 0; i<reactionSystemList.size();i++) {
@@ -1778,8 +1729,7 @@ public class ReactionModelGenerator {
                 //terminated = false;
                 ReactionTime begin = (ReactionTime)beginList.get(i);
                 ReactionTime end = (ReactionTime)endList.get(i);
-                LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
-                rs.solveReactionSystemwithSEN(begin, end, true, false, false, seedmechnonpdeprxns);
+                rs.solveReactionSystemwithSEN(begin, end, true, false, false);
                 //reactionSystem.solveReactionSystemwithSEN(begin, end, true, false, false);
 			}
 			
@@ -1788,8 +1738,7 @@ public class ReactionModelGenerator {
         // All of the reaction systems are the same, so just write the chemkin
         //	file for the first reaction system
 		ReactionSystem rs = (ReactionSystem)reactionSystemList.get(0);
-                LinkedHashSet seedmechnonpdeprxns = extractSeedMechRxnsIfTheyExist();
-		Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus(),seedmechnonpdeprxns);
+		Chemkin.writeChemkinInputFile(getReactionModel(),rs.getPresentStatus()); 
 		
         //9/1/09 gmagoon: if we are using QM, output a file with the CHEMKIN name, the RMG name, the (modified) InChI, and the (modified) InChIKey
         if (ChemGraph.useQM){
@@ -1797,8 +1746,6 @@ public class ReactionModelGenerator {
         }
 		
         writeDictionary(getReactionModel());
-        System.out.println("Model Generation Completed");
-        return;
     }
     
     //9/1/09 gmagoon: this function writes a "dictionary" with Chemkin name, RMG name, (modified) InChI, and InChIKey
@@ -1819,8 +1766,9 @@ public class ReactionModelGenerator {
 			fw.close();
 		}
 		catch (Exception e) {
-			System.out.println("Error in writing InChI file inchiDictionary.txt!");
-			System.out.println(e.getMessage());
+			Logger.logStackTrace(e);
+			Logger.critical("Error in writing InChI file inchiDictionary.txt!");
+			Logger.critical(e.getMessage());
 			System.exit(0);
 		}
     }
@@ -1853,7 +1801,7 @@ public class ReactionModelGenerator {
 			fw.close();
 		}
 		catch (IOException e) {
-			System.out.println("Could not write RMG_Dictionary.txt");
+			Logger.critical("Could not write RMG_Dictionary.txt");
 			System.exit(0);
         }
 		
@@ -1886,7 +1834,7 @@ public class ReactionModelGenerator {
 			fw.close();
 		}
 		catch (IOException e) {
-			System.out.println("Could not write RMG_Solvation_Properties.txt");
+			Logger.critical("Could not write RMG_Solvation_Properties.txt");
 			System.exit(0);
         }
 		
@@ -2165,7 +2113,7 @@ public class ReactionModelGenerator {
 				int ID = Integer.parseInt(index);
 				Species spe = dictionary.getSpeciesFromID(ID);
 				if (spe == null)
-					System.out.println("There was no species with ID "+ID +" in the species dictionary");
+					Logger.warning("There was no species with ID "+ID +" in the species dictionary");
 				
 				((CoreEdgeReactionModel)getReactionModel()).addReactedSpecies(spe);
 				line = ChemParser.readMeaningfulLine(reader, true);
@@ -2173,7 +2121,7 @@ public class ReactionModelGenerator {
 			
 		}
 		catch (IOException e){
-			System.out.println("Could not read the corespecies restart file");
+			Logger.critical("Could not read the corespecies restart file");
         	System.exit(0);
 		}
 		
@@ -2185,57 +2133,12 @@ public class ReactionModelGenerator {
 	public static void printMemoryUsed(){
 		garbageCollect();
 		Runtime rT = Runtime.getRuntime();
-		long uM, tM, fM;
-		tM = rT.totalMemory();
-		fM = rT.freeMemory();
+		double uM, tM, fM;
+		tM = rT.totalMemory() / 1.0e6;
+		fM = rT.freeMemory() / 1.0e6;
 		uM = tM - fM;
-		System.out.println("After garbage collection:");
-		System.out.print("Memory used: ");
-		System.out.println(uM);
-		System.out.print("Free memory: ");
-		System.out.println(fM);
-	}
-	
-	private HashSet readIncludeSpecies(String fileName) {
-		HashSet speciesSet = new HashSet();
-		try {
-			File includeSpecies = new File (fileName);
-			FileReader fr = new FileReader(includeSpecies);
-			BufferedReader reader = new BufferedReader(fr);
-			String line = ChemParser.readMeaningfulLine(reader, true);
-			while (line!=null) {
-    			StringTokenizer st = new StringTokenizer(line);
-    			String index = st.nextToken();
-    			String name = null;
-    			if (!index.startsWith("(")) name = index;
-    			else name = st.nextToken().trim();
-				
-    			Graph g = ChemParser.readChemGraph(reader);
-				
-    			ChemGraph cg = null;
-    			try {
-    				cg = ChemGraph.make(g);
-    			}
-    			catch (ForbiddenStructureException e) {
-    				System.out.println("Forbidden Structure:\n" + e.getMessage());
-					System.out.println("Included species file "+fileName+" contains a forbidden structure.");
-    				System.exit(0);
-    			}
-				
-    			Species species = Species.make(name,cg);
-       			//speciesSet.put(name, species);
-    			speciesSet.add(species);
-				
-    			line = ChemParser.readMeaningfulLine(reader, true);
-				System.out.println(line);
-				
-    		}
-		}
-		catch (IOException e){
-			System.out.println("Could not read the included species file" + fileName);
-        	System.exit(0);
-		}
-		return speciesSet;
+		Logger.debug("After garbage collection:");
+        Logger.info(String.format("Memory used: %.2f MB / %.2f MB (%.2f%%)", uM, tM, uM / tM * 100.));
 	}
 	
 	/*
@@ -2392,7 +2295,7 @@ public class ReactionModelGenerator {
 	        fw.close();
 		}
 		catch (IOException e) {
-        	System.out.println("Cannot write enlarger file");
+        	Logger.critical("Cannot write enlarger file");
         	System.exit(0);
         }
 	}
@@ -2406,7 +2309,7 @@ public class ReactionModelGenerator {
 	        fw.close();
 		}
 		catch (IOException e) {
-        	System.out.println("Cannot write diagnosis file");
+        	Logger.critical("Cannot write diagnosis file");
         	System.exit(0);
         }
 		
@@ -2565,9 +2468,9 @@ public class ReactionModelGenerator {
 				bw.newLine();
 			}
         } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } finally {
             try {
                 if (bw != null) {
@@ -2575,7 +2478,7 @@ public class ReactionModelGenerator {
                     bw.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Logger.logStackTrace(ex);
             }
         }
 	}
@@ -2591,9 +2494,9 @@ public class ReactionModelGenerator {
 		    bw.write(species.getChemGraph().toString(dummyInt));
 		    bw.newLine();
 		} catch (FileNotFoundException ex) {
-		    ex.printStackTrace();
+		    Logger.logStackTrace(ex);
 		} catch (IOException ex) {
-		    ex.printStackTrace();
+		    Logger.logStackTrace(ex);
 		} finally {
 		    try {
 			if (bw != null) {
@@ -2601,7 +2504,7 @@ public class ReactionModelGenerator {
 			    bw.close();
 			}
 		    } catch (IOException ex) {
-			ex.printStackTrace();
+			Logger.logStackTrace(ex);
 		    }
 		}
 	}
@@ -2651,9 +2554,9 @@ public class ReactionModelGenerator {
 				bw.newLine();
 			}
         } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } finally {
             try {
                 if (bw != null) {
@@ -2661,7 +2564,7 @@ public class ReactionModelGenerator {
                     bw.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Logger.logStackTrace(ex);
             }
         }
 	}
@@ -2709,9 +2612,9 @@ public class ReactionModelGenerator {
 				}
 			}
         } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } finally {
             try {
                 if (bw_rxns != null) {
@@ -2723,7 +2626,7 @@ public class ReactionModelGenerator {
                 	bw_pdeprxns.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Logger.logStackTrace(ex);
             }
         }
 	}
@@ -2751,12 +2654,12 @@ public class ReactionModelGenerator {
 					bw.write(reaction.getReverseReaction().toRestartString(new Temperature(298,"K"),false));
 					bw.newLine();
 				} else
-					System.out.println("Could not determine forward direction for following rxn: " + reaction.toString());
+					Logger.warning("Could not determine forward direction for following rxn: " + reaction.toString());
 			}
         } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } finally {
             try {
                 if (bw != null) {
@@ -2764,7 +2667,7 @@ public class ReactionModelGenerator {
                     bw.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Logger.logStackTrace(ex);
             }
         }
 	}
@@ -2785,11 +2688,11 @@ public class ReactionModelGenerator {
 			    //bw.write(reaction.getReverseReaction().toRestartString(new Temperature(298,"K")));
 			    bw.newLine();
 		    } else
-			    System.out.println("Could not determine forward direction for following rxn: " + reaction.toString());
+			    Logger.warning("Could not determine forward direction for following rxn: " + reaction.toString());
 		} catch (FileNotFoundException ex) {
-		    ex.printStackTrace();
+		    Logger.logStackTrace(ex);
 		} catch (IOException ex) {
-		    ex.printStackTrace();
+		    Logger.logStackTrace(ex);
 		} finally {
 		    try {
 			if (bw != null) {
@@ -2797,7 +2700,7 @@ public class ReactionModelGenerator {
 			    bw.close();
 			}
 		    } catch (IOException ex) {
-			ex.printStackTrace();
+			Logger.logStackTrace(ex);
 		    }
 		}
 	}
@@ -2811,7 +2714,8 @@ public class ReactionModelGenerator {
     		int numFamePress = PDepRateConstant.getPressures().length;
     		int numChebyTemps = ChebyshevPolynomials.getNT();
     		int numChebyPress = ChebyshevPolynomials.getNP();
-    		int numPlog = PDepArrheniusKinetics.getNumPressures();
+    		//int numPlog = PDepArrheniusKinetics.getNumPressures();
+			int numPlog = numFamePress; // probably often the case for FAME-generated PLOG rates (but not for seed or library reactions)
     		String EaUnits = ArrheniusKinetics.getEaUnits();
     		
     		bw.write("UnitsOfEa: " + EaUnits);
@@ -2824,7 +2728,7 @@ public class ReactionModelGenerator {
     		bw.newLine();
     		bw.write("NumberOfChebyPress: " + numChebyPress);
     		bw.newLine();
-    		bw.write("NumberOfPLogs: " + numPlog);
+    		bw.write("NumberOfPLogs: Could be different for seed and library reactions, but default for FAME-generated rates is probably "+ numPlog);
     		bw.newLine();
     		bw.newLine();
     		
@@ -2864,7 +2768,9 @@ public class ReactionModelGenerator {
 					
 					PDepReaction currentPDepReverseRxn = currentPDepRxn.getReverseReaction();
 					// Not all nonIncludedReactions are reversible
-					if (currentPDepReverseRxn != null) {
+                                        // (MRH FEB-16-2011) ... and not all reverse reactions
+                                        //  have pressure-dependent rate coefficients (apparently)
+					if (currentPDepReverseRxn != null && currentPDepReverseRxn.getPDepRate() != null) {
 						bw.write(currentPDepReverseRxn.toString());
 						bw.newLine();
 						bw.write(writeRatesAndParameters(currentPDepReverseRxn,numFameTemps,
@@ -2888,9 +2794,9 @@ public class ReactionModelGenerator {
 			}
     		
         } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Logger.logStackTrace(ex);
         } finally {
             try {
                 if (bw != null) {
@@ -2898,7 +2804,7 @@ public class ReactionModelGenerator {
                     bw.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Logger.logStackTrace(ex);
             }
         }
 	}
@@ -2930,6 +2836,14 @@ public class ReactionModelGenerator {
 		}
 		
 		// If plog parameters are present, write them
+		PDepArrheniusKinetics[] kinetics = pdeprxn.getPDepRate().getPDepArrheniusKinetics();
+		if (kinetics != null) {
+			for (int i=0; i<kinetics.length; i++) {
+				sb.append(kinetics[i].toChemkinString());
+				sb.append("\n");
+			}
+		}
+	/*
 		else if (numPlog != 0) {
 			PDepArrheniusKinetics kinetics = pdeprxn.getPDepRate().getPDepArrheniusKinetics();
 			for (int i=0; i<numPlog; i++) {
@@ -2938,6 +2852,7 @@ public class ReactionModelGenerator {
 			}
 			sb.append("\n");
 		}
+	*/
 		
 		return sb.toString();
 	}
@@ -3012,7 +2927,7 @@ public class ReactionModelGenerator {
     }
     
     public void readRestartSpecies() {    	
-		System.out.println("Reading in species from Restart folder");
+		Logger.info("Reading in species from Restart folder");
 		// Read in core species -- NOTE code is almost duplicated in Read in edge species (second part of procedure)
 		try {
 			FileReader in = new FileReader("Restart/coreSpecies.txt");
@@ -3030,7 +2945,7 @@ public class ReactionModelGenerator {
 				try {
 					cg = ChemGraph.make(g);
 				} catch (ForbiddenStructureException e) {
-					System.out.println("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
+					Logger.critical("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
 					System.exit(0);
 				}
 				// Make the species
@@ -3046,9 +2961,9 @@ public class ReactionModelGenerator {
 				line = ChemParser.readMeaningfulLine(reader, true);
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		}
 		
 		// Read in edge species
@@ -3068,7 +2983,7 @@ public class ReactionModelGenerator {
 				try {
 					cg = ChemGraph.make(g);
 				} catch (ForbiddenStructureException e) {
-					System.out.println("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
+					Logger.critical("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
 					System.exit(0);
 				}
 				// Rewrite the species name ... with the exception of the (#)
@@ -3083,9 +2998,9 @@ public class ReactionModelGenerator {
 				line = ChemParser.readMeaningfulLine(reader, true);
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		}
 		
     }
@@ -3100,7 +3015,7 @@ public class ReactionModelGenerator {
     		++i;
     	}
     	
-		System.out.println("Reading reactions from Restart folder");
+		Logger.info("Reading reactions from Restart folder");
 		// Read in core reactions
 		try {
 			FileReader in = new FileReader("Restart/coreReactions.txt");
@@ -3123,7 +3038,7 @@ public class ReactionModelGenerator {
 	        		while (rxnIter.hasNext()) {
 	        			Reaction old = (Reaction)rxnIter.next();
 	        			if (old.equals(r)) {
-	        				old.addAdditionalKinetics(r.getKinetics()[0],1);
+	        				old.addAdditionalKinetics(r.getKinetics()[0],1,true);
 	        				foundRxn = true;
 	        				break;
 	        			}
@@ -3137,9 +3052,9 @@ public class ReactionModelGenerator {
 				line = ChemParser.readMeaningfulLine(reader, true);
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		}
 		
 		/*
@@ -3151,17 +3066,14 @@ public class ReactionModelGenerator {
 		 *  	Place these reactions in a new Seed Mechanism, using the 
 		 *  		coreSpecies.txt file as the species.txt file.
 		 */
+		SeedMechanism restart_seed_mechanism = null;
 		try {
 			String path = System.getProperty("user.dir") +  "/Restart";								   
-			if (getSeedMechanism() == null)
-				setSeedMechanism(new SeedMechanism("Restart", path, false, true));
-			else
-				getSeedMechanism().appendSeedMechanism("Restart", path, false, true);
+			restart_seed_mechanism = new SeedMechanism("Restart", path, false, true);
 		} catch (IOException e1) {
-			e1.printStackTrace();
+            Logger.logStackTrace(e1);
 		}
-		
-		restartCoreRxns.addAll(getSeedMechanism().getReactionSet());
+		restartCoreRxns.addAll(restart_seed_mechanism.getReactionSet());
 		
 		// Read in edge reactions
 		try {
@@ -3185,7 +3097,7 @@ public class ReactionModelGenerator {
 	        		while (rxnIter.hasNext()) {
 	        			Reaction old = (Reaction)rxnIter.next();
 	        			if (old.equals(r)) {
-	        				old.addAdditionalKinetics(r.getKinetics()[0],1);
+	        				old.addAdditionalKinetics(r.getKinetics()[0],1,true);
 	        				foundRxn = true;
 	        				break;
 	        			}
@@ -3199,9 +3111,9 @@ public class ReactionModelGenerator {
 				line = ChemParser.readMeaningfulLine(reader, true);
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		}
     }
     
@@ -3234,7 +3146,7 @@ public class ReactionModelGenerator {
 				try {
 					cg = ChemGraph.make(g);
 				} catch (ForbiddenStructureException e) {
-					System.out.println("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
+					Logger.critical("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
 					System.exit(0);
 				}
 				// Make the species
@@ -3247,9 +3159,9 @@ public class ReactionModelGenerator {
 				line = ChemParser.readMeaningfulLine(reader, true);
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		}
 		
 		return speciesStatus;
@@ -3273,7 +3185,7 @@ public class ReactionModelGenerator {
 				try {
 					cg = ChemGraph.make(g);
 				} catch (ForbiddenStructureException e) {
-					System.out.println("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
+					Logger.critical("Error reading graph: Graph contains a forbidden structure.\n" + g.toString());
 					System.exit(0);
 				}
 				// Make the species
@@ -3287,9 +3199,9 @@ public class ReactionModelGenerator {
 				line = ChemParser.readMeaningfulLine(reader, true);
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		}
 		
     }
@@ -3505,9 +3417,9 @@ public class ReactionModelGenerator {
 			}
 			
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.logStackTrace(e);
 		}
     }
     
@@ -3652,6 +3564,12 @@ public class ReactionModelGenerator {
     	}
     	
 		CoreEdgeReactionModel cerm = new CoreEdgeReactionModel(allInitialCoreSpecies, allInitialCoreRxns);
+		
+		// Store the seed mechanism in the CERM so that we can access it from there when writing chemkin files:
+		if (hasSeedMechanisms()) {
+			cerm.setSeedMechanism(getSeedMechanism());
+		}
+		
 		if (readrestart) {
 			cerm.addUnreactedSpeciesSet(restartEdgeSpcs);
 			cerm.addUnreactedReactionSet(restartEdgeRxns);
@@ -3674,41 +3592,36 @@ public class ReactionModelGenerator {
 				reactionSet_withdup.addAll(getReactionGenerator().react(allInitialCoreSpecies));
 				
 				// Removing Duplicates instances of reaction if present 
-				 reactionSet = getLibraryReactionGenerator().RemoveDuplicateReac(reactionSet_withdup);
-				 
-				// shamel 6/22/2010 Suppressed output , line is only for debugging
-				//System.out.println("Current Reaction Set after RModG + LRG and Removing Dups"+reactionSet);
+				reactionSet = getLibraryReactionGenerator().RemoveDuplicateReac(reactionSet_withdup);
+
 			}
-			
 			else {
 				reactionSet_withdup = new LinkedHashSet();	
 				
-				//System.out.println("Initial Core Species RModG"+allInitialCoreSpecies);
-				
 				LinkedHashSet tempnewReactionSet = getLibraryReactionGenerator().react(allInitialCoreSpecies);
-				if(!tempnewReactionSet.isEmpty()){
-				System.out.println("Reaction Set Found from Reaction Library "+tempnewReactionSet);
+				if(tempnewReactionSet.isEmpty()){
+					Logger.info("No reactions of initial core and seed species found in Reaction Library");
+				}
+				else {
+					Logger.info("Reactions of initial core and seed species found in Reaction Library:");
+					Logger.info(tempnewReactionSet.toString());
 				}
 				
 				// Adds Reactions Found in Library Reaction Generator to Reaction Set
-				reactionSet_withdup.addAll(getLibraryReactionGenerator().react(allInitialCoreSpecies));
-				
-				// shamel 6/22/2010 Suppressed output , line is only for debugging
-				//System.out.println("Current Reaction Set after LRG"+reactionSet_withdup);
+				reactionSet_withdup.addAll(tempnewReactionSet);
 				
 				// Generates Reaction from the Reaction Generator and adds them to Reaction Set
-					for (Iterator iter = speciesSeed.iterator(); iter.hasNext(); ) {
+				Logger.info("Generating reactions of initial core species using reaction families.");
+				Logger.info("(Condition file species will react with seed species, but seed species will not \n" +
+							"react with each other because GenerateReactions is off)");
+				// nb. speciesSeed contains the condition file species (not the seed mechanism species)
+				for (Iterator iter = speciesSeed.iterator(); iter.hasNext(); ) {
 					Species spec = (Species) iter.next();
 					reactionSet_withdup.addAll(getReactionGenerator().react(allInitialCoreSpecies, spec,"All"));
 				}
-					reactionSet = getLibraryReactionGenerator().RemoveDuplicateReac(reactionSet_withdup);
-					
-					// shamel 6/22/2010 Suppressed output , line is only for debugging
-					//System.out.println("Current Reaction Set after RModG + LRG and Removing Dups"+reactionSet);
+				reactionSet = getLibraryReactionGenerator().RemoveDuplicateReac(reactionSet_withdup);
 			}
 			
-			
-		
 	    	// Set initial core-edge reaction model based on above results
 			if (reactionModelEnlarger instanceof RateBasedRME)	{
 				Iterator iter = reactionSet.iterator();
@@ -3781,7 +3694,7 @@ public class ReactionModelGenerator {
 				reactionSet_withdup = new LinkedHashSet();	
 				LinkedHashSet tempnewReactionSet = getLibraryReactionGenerator().react(speciesSeed);
 				if (!tempnewReactionSet.isEmpty()) {
-					System.out.println("Reaction Set Found from Reaction Library "+tempnewReactionSet);
+					Logger.info("Reaction Set Found from Reaction Library "+tempnewReactionSet);
 				}
 				
 				// Adds Reactions Found in Library Reaction Generator to Reaction Set
@@ -3873,14 +3786,7 @@ public class ReactionModelGenerator {
         		}
         	}
     	}
-        
-		
-		
-		
-        
-		
         return;
-		
         //#]
     }
 	
@@ -3957,23 +3863,8 @@ public class ReactionModelGenerator {
     //## operation initializeCoreEdgeReactionModel()
     //9/24/07 gmagoon: moved from ReactionSystem.java
     public void initializeCoreEdgeReactionModel() {
-		System.out.println("\nInitializing core-edge reaction model");
-		// setSpeciesSeed(new LinkedHashSet());//10/4/07 gmagoon:moved from initializeReactionSystem; later moved to modelGeneration()
-        //#[ operation initializeCoreEdgeReactionModel()
-		//        if (hasPrimaryKineticLibrary()) initializeCoreEdgeModelWithPKL();
-		//        else initializeCoreEdgeModelWithoutPKL();
-		/*
-		 * MRH 12-Jun-2009
-		 * 
-		 * I've lumped the initializeCoreEdgeModel w/ and w/o a seed mechanism
-		 * 	(which used to be the PRL) into one function.  Before, RMG would
-		 * 	complete one iteration (construct the edge species/rxns) before adding
-		 * 	the seed mechanism to the rxn, thereby possibly estimating kinetic
-		 * 	parameters for a rxn that exists in a seed mechanism
-		 */
+		Logger.info("Initializing core-edge reaction model");
 		initializeCoreEdgeModel();
-		
-        //#]
     }
     
     //9/24/07 gmagoon: copied from ReactionSystem.java
@@ -3992,16 +3883,19 @@ public class ReactionModelGenerator {
     public void enlargeReactionModel() {
         //#[ operation enlargeReactionModel()
         if (reactionModelEnlarger == null) throw new NullPointerException("ReactionModelEnlarger");
-		System.out.println("\nEnlarging reaction model");
+        Logger.info("");
+        Logger.info("Enlarging reaction model");
         reactionModelEnlarger.enlargeReactionModel(reactionSystemList, reactionModel, validList);
-		
+
         return;
         //#]
     }
 
     public void pruneReactionModel(HashMap unprunableSpecies) {
 		
-		HashMap prunableSpeciesMap = new HashMap();
+		Runtime runtime = Runtime.getRuntime();
+
+        HashMap prunableSpeciesMap = new HashMap();
 		//check whether all the reaction systems reached target conversion/time
 		boolean allReachedTarget = true;
 		for (Integer i = 0; i < reactionSystemList.size(); i++) {
@@ -4119,12 +4013,17 @@ public class ReactionModelGenerator {
 				double maxmaxRatio = (Double)entry.getValue();
 				if (maxmaxRatio < edgeTol)
 				{
-					System.out.println("Edge species "+spe.getChemkinName() +" has a maximum flux ratio ("+maxmaxRatio+") lower than edge inclusion threshhold and will be pruned.");
+					Logger.info(String.format("Edge species %s has a maximum flux ratio (%.2g) lower than edge inclusion threshhold (%.2g) and will be pruned.",spe.getChemkinName(),maxmaxRatio,edgeTol ));
 					speciesToPrune.add(spe);
 					++belowThreshold;
 				}
 				else if ( numberToBePruned - speciesToPrune.size() > 0 ) {
-					System.out.println("Edge species "+spe.getChemkinName() +" has a low maximum flux ratio ("+maxmaxRatio+") and will be pruned to reduce the edge size to the maximum ("+maxEdgeSpeciesAfterPruning+").");
+					if (maxmaxRatio>tolerance){
+						Logger.warning(String.format("To reach the requested maximum edge size after pruning (%d) would require pruning species with a maximum flux ratio above the requested overall tolerance (%.2g) which is inconsistent.",maxEdgeSpeciesAfterPruning,tolerance));
+						Logger.warning(String.format("No more species will be pruned this iteration, leaving an edge size of %d. Please increase your overall Error Tolerance if you'd like more species to be pruned.",maxEdgeSpeciesAfterPruning + numberToBePruned - speciesToPrune.size() ));
+						break;
+					}
+					Logger.info(String.format("Edge species %s has a low maximum flux ratio (%.2g) and will be pruned to reduce the edge size to the maximum (%d).",spe.getChemkinName(),maxmaxRatio,maxEdgeSpeciesAfterPruning ));
 					speciesToPrune.add(spe);
 					++lowMaxFlux;
 				}
@@ -4136,8 +4035,11 @@ public class ReactionModelGenerator {
 			//System.out.println("PDep Pruning DEBUG:\nRMG has marked the following number of species" +
 			//		" to be pruned due to low max flux ratio : " + lowMaxFlux);
 			
-			//now, speciesToPrune has been filled with species that should be pruned from the edge
-			System.out.println("Pruning...");
+			runtime.gc();
+            double memoryUsedBeforePruning = (runtime.totalMemory() - runtime.freeMemory()) / 1.0e6;
+
+            //now, speciesToPrune has been filled with species that should be pruned from the edge
+			Logger.info("Pruning...");
 			//prune species from the edge
 			//remove species from the edge and from the species dictionary and from edgeID
 			iter = speciesToPrune.iterator();
@@ -4148,13 +4050,17 @@ public class ReactionModelGenerator {
 				//SpeciesDictionary.getInstance().getSpeciesSet().remove(spe);
 				if (!unprunableSpecies.containsValue(spe))
 					SpeciesDictionary.getInstance().remove(spe);
-				else System.out.println("Pruning Message: Not removing the following species " +
+				else Logger.info("Pruning Message: Not removing the following species " +
 						"from the SpeciesDictionary\nas it is present in a Primary Kinetic / Reaction" +
 						" Library\nThe species will still be removed from the Edge of the " +
 						"Reaction Mechanism\n" + spe.toString());
 				JDAS.edgeID.remove(spe);
+				JDAS.edgeLeakID.remove(spe); // this would get cleaned up in another iteration when edgeLeakID is rebuilt, but debugging memory leaks is simpler if we explicitly clear it here.
 			}
 			//remove reactions from the edge involving pruned species
+			
+			ReactionTemplateLibrary rtl = ReactionTemplateLibrary.getINSTANCE();
+			
 			iter = ((CoreEdgeReactionModel)getReactionModel()).getUnreactedReactionSet().iterator();
 			HashSet toRemove = new HashSet();
 			while(iter.hasNext()){
@@ -4168,24 +4074,18 @@ public class ReactionModelGenerator {
 				Reaction reverse = reaction.getReverseReaction();
 				((CoreEdgeReactionModel)reactionModel).removeFromUnreactedReactionSet(reaction);
 				((CoreEdgeReactionModel)reactionModel).removeFromUnreactedReactionSet(reverse);
-				ReactionTemplate rt = reaction.getReactionTemplate();
-				ReactionTemplate rtr = null;
-				if(reverse!=null){
-				    rtr = reverse.getReactionTemplate();
+				
+				int number_removed;
+				number_removed = rtl.removeFromAllReactionDictionariesByStructure(reaction.getStructure());
+				if (number_removed != 1)
+					Logger.info(String.format("Removed edge forward %s from %s dictionaries",reaction.getStructure(),number_removed));
+				if (reverse != null) {
+					number_removed = rtl.removeFromAllReactionDictionariesByStructure(reverse.getStructure());
+					if (number_removed != 1)
+						Logger.info(String.format("Removed edge reverse %s from %s dictionaries",reverse.getStructure(),number_removed));
 				}
-				if(rt!=null){
-				    rt.removeFromReactionDictionaryByStructure(reaction.getStructure());//remove from ReactionTemplate's reactionDictionaryByStructure
-				}
-				if(rtr!=null){
-				    rtr.removeFromReactionDictionaryByStructure(reverse.getStructure());
-				}
-				if ((reaction.isForward() && reaction.getKineticsSource(0).contains("Library")) ||
-						(reaction.isBackward() && reaction.getReverseReaction().getKineticsSource(0).contains("Library")))
-					continue;
-				reaction.setStructure(null);
-				if(reverse!=null){
-				    reverse.setStructure(null);
-				}
+				reaction.prune();
+				if (reverse != null) reverse.prune();
 			}
 			//remove reactions from PDepNetworks in PDep cases
 			if (reactionModelEnlarger instanceof RateBasedPDepRME)	{
@@ -4237,24 +4137,24 @@ public class ReactionModelGenerator {
 						Reaction reverse = reaction.getReverseReaction();
 						pdn.removeFromPathReactionList((PDepReaction)reaction);
 						pdn.removeFromPathReactionList((PDepReaction)reverse);
-						ReactionTemplate rt = reaction.getReactionTemplate();
-						ReactionTemplate rtr = null;
-						if(reverse!=null){
-						    rtr = reverse.getReactionTemplate();
+
+						Structure fwd_structure = reaction.getStructure();
+						Structure rev_structure = null;
+						if (reverse != null) {
+							rev_structure = reverse.getStructure();
 						}
-						if(rt!=null){
-						    rt.removeFromReactionDictionaryByStructure(reaction.getStructure());//remove from ReactionTemplate's reactionDictionaryByStructure
+						else {
+							rev_structure = fwd_structure.generateReverseStructure();
 						}
-						if(rtr!=null){
-						    rtr.removeFromReactionDictionaryByStructure(reverse.getStructure());
-						}
-						if ((reaction.isForward() && reaction.getKineticsSource(0).contains("Library")) ||
-								(reaction.isBackward() && reaction.getReverseReaction().getKineticsSource(0).contains("Library")))
-							continue;
-						reaction.setStructure(null);
-						if(reverse!=null){
-						    reverse.setStructure(null);
-						}
+						int number_removed;
+						number_removed = rtl.removeFromAllReactionDictionariesByStructure(fwd_structure);
+						if (number_removed != 1)
+							Logger.info(String.format("Removed path forward %s from %s dictionaries",fwd_structure,number_removed));
+						number_removed = rtl.removeFromAllReactionDictionariesByStructure(rev_structure);
+						if (number_removed != 1)
+							Logger.info(String.format("Removed path reverse %s from %s dictionaries",rev_structure,number_removed));
+						reaction.prune();
+						if (reverse != null) reverse.prune();
 					}
 					//remove net reactions
 					iterRem = toRemoveNet.iterator();
@@ -4263,21 +4163,8 @@ public class ReactionModelGenerator {
 						Reaction reverse = reaction.getReverseReaction();
 						pdn.removeFromNetReactionList((PDepReaction)reaction);
 						pdn.removeFromNetReactionList((PDepReaction)reverse);
-						ReactionTemplate rt = reaction.getReactionTemplate();
-						ReactionTemplate rtr = null;
-						if(reverse!=null){
-						    rtr = reverse.getReactionTemplate();
-						}
-						if(rt!=null){
-						    rt.removeFromReactionDictionaryByStructure(reaction.getStructure());//remove from ReactionTemplate's reactionDictionaryByStructure
-						}
-						if(rtr!=null){
-						    rtr.removeFromReactionDictionaryByStructure(reverse.getStructure());
-						}
-						reaction.setStructure(null);
-						if(reverse!=null){
-						    reverse.setStructure(null);
-						}
+						reaction.prune();
+						if (reverse != null) reverse.prune();
 					}
 					//remove nonincluded reactions
 					iterRem = toRemoveNonincluded.iterator();
@@ -4286,21 +4173,8 @@ public class ReactionModelGenerator {
 						Reaction reverse = reaction.getReverseReaction();
 						pdn.removeFromNonincludedReactionList((PDepReaction)reaction);
 						pdn.removeFromNonincludedReactionList((PDepReaction)reverse);
-						ReactionTemplate rt = reaction.getReactionTemplate();
-						ReactionTemplate rtr = null;
-						if(reverse!=null){
-						    rtr = reverse.getReactionTemplate();
-						}
-						if(rt!=null){
-						    rt.removeFromReactionDictionaryByStructure(reaction.getStructure());//remove from ReactionTemplate's reactionDictionaryByStructure
-						}
-						if(rtr!=null){
-						    rtr.removeFromReactionDictionaryByStructure(reverse.getStructure());
-						}
-						reaction.setStructure(null);
-						if(reverse!=null){
-						    reverse.setStructure(null);
-						}
+						reaction.prune();
+						if (reverse != null) reverse.prune();
 					}
 					//remove isomers
 					iterRem = toRemoveIsomer.iterator();
@@ -4316,7 +4190,22 @@ public class ReactionModelGenerator {
 					PDepNetwork pdn = (PDepNetwork)iter.next();
 					PDepNetwork.getNetworks().remove(pdn);
 				}
-			} 
+			}
+
+            runtime.gc();
+            double memoryUsedAfterPruning = (runtime.totalMemory() - runtime.freeMemory()) / 1.0e6;
+            
+            Logger.info(String.format("Number of species pruned:    %d", speciesToPrune.size()));
+            Logger.info(String.format("Memory used before pruning:  %10.2f MB", memoryUsedBeforePruning));
+            Logger.info(String.format("Memory used after pruning:   %10.2f MB", memoryUsedAfterPruning));
+            if (memoryUsedAfterPruning < memoryUsedBeforePruning)
+                Logger.info(String.format("Memory recovered by pruning: %10.2f MB", memoryUsedBeforePruning - memoryUsedAfterPruning));
+            else if (speciesToPrune.size() > 100)
+                // There were a significant number of species pruned, but we didn't recover any memory
+                Logger.warning("No memory recovered due to pruning!");
+
+
+
 		}
 		//System.out.println("PDep Pruning DEBUG:\nThe number of species in the model's edge, after pruning: " + ((CoreEdgeReactionModel)reactionModel).getEdge().getSpeciesNumber());
         return;
@@ -4439,10 +4328,9 @@ public class ReactionModelGenerator {
     	int Ilib = 0;
     	String line = ChemParser.readMeaningfulLine(reader, true);
     	while (!line.equals("END")) {
-			String[] tempString = line.split("Name: ");
-			String name = tempString[tempString.length-1].trim();
+			String name = extractLibraryName(line);
 			line = ChemParser.readMeaningfulLine(reader, true);
-			tempString = line.split("Location: ");
+			String[] tempString = line.split("Location: ");
 			String location = tempString[tempString.length-1].trim();
 			
 			String path = System.getProperty("jing.rxn.ReactionLibrary.pathName");
@@ -4460,7 +4348,7 @@ public class ReactionModelGenerator {
 		if (Ilib==0) {
 			setPrimaryKineticLibrary(null);
 		}
-		else System.out.println("Primary Kinetic Libraries in use: " + getPrimaryKineticLibrary().getName());
+		else Logger.info("Primary Kinetic Libraries in use: " + getPrimaryKineticLibrary().getName());
     }
     
 
@@ -4468,10 +4356,9 @@ public class ReactionModelGenerator {
     	int Ilib = 0;
     	String line = ChemParser.readMeaningfulLine(reader, true);
     	while (!line.equals("END")) {
-			String[] tempString = line.split("Name: ");
-			String name = tempString[tempString.length-1].trim();
+			String name = extractLibraryName(line);
 			line = ChemParser.readMeaningfulLine(reader, true);
-			tempString = line.split("Location: ");
+			String[] tempString = line.split("Location: ");
 			String location = tempString[tempString.length-1].trim();
 			
 			String path = System.getProperty("jing.rxn.ReactionLibrary.pathName");
@@ -4489,7 +4376,7 @@ public class ReactionModelGenerator {
 		if (Ilib==0) {
 			setReactionLibrary(null);
 		}
-		else System.out.println("Reaction Libraries in use: " + getReactionLibrary().getName());
+		else Logger.info("Reaction Libraries in use: " + getReactionLibrary().getName());
     }
     
     
@@ -4498,10 +4385,9 @@ public class ReactionModelGenerator {
      	int numPTLs = 0;
      	String line = ChemParser.readMeaningfulLine(reader, true);
      	while (!line.equals("END")) {
-     		String[] tempString = line.split("Name: ");
-     		String name = tempString[tempString.length-1].trim();
+     		String name = extractLibraryName(line);
 			line = ChemParser.readMeaningfulLine(reader, true);
-			tempString = line.split("Location: ");
+			String[] tempString = line.split("Location: ");
 			String path = tempString[tempString.length-1].trim();
 			if (numPTLs==0) {
              	setPrimaryThermoLibrary(new PrimaryThermoLibrary(name,path));
@@ -4517,7 +4403,7 @@ public class ReactionModelGenerator {
     }
 	
 	public void readExtraForbiddenStructures(BufferedReader reader) throws IOException  {
-		System.out.println("Reading extra forbidden structures from input file.");
+		Logger.info("Reading extra forbidden structures from input file.");
      	String line = ChemParser.readMeaningfulLine(reader, true);
      	while (!line.equals("END")) {
 			StringTokenizer token = new StringTokenizer(line);
@@ -4527,14 +4413,14 @@ public class ReactionModelGenerator {
 				fgGraph = ChemParser.readFGGraph(reader);
 			}
 			catch (InvalidGraphFormatException e) {
-				System.out.println("Invalid functional group in "+fgname);
+				Logger.error("Invalid functional group in "+fgname);
 				throw new InvalidFunctionalGroupException(fgname + ": " + e.getMessage());
 			}
 			if (fgGraph == null) throw new InvalidFunctionalGroupException(fgname);
 			FunctionalGroup fg = FunctionalGroup.makeForbiddenStructureFG(fgname, fgGraph);
 			ChemGraph.addForbiddenStructure(fg);
 			line = ChemParser.readMeaningfulLine(reader, true);
-			System.out.println(" Forbidden structure: "+fgname);
+			Logger.debug(" Forbidden structure: "+fgname);
 		}
 	}
     
@@ -4613,11 +4499,11 @@ public class ReactionModelGenerator {
 			
 			// Turn on spectroscopic data estimation if not already on
 			if (pdepModelEnlarger.getPDepKineticsEstimator() instanceof FastMasterEqn && SpectroscopicData.mode == SpectroscopicData.Mode.OFF) {
-				System.out.println("Warning: Spectroscopic data needed for pressure dependence; switching SpectroscopicDataEstimator to FrequencyGroups.");
+				Logger.warning("Spectroscopic data needed for pressure dependence; switching SpectroscopicDataEstimator to FrequencyGroups.");
 				SpectroscopicData.mode = SpectroscopicData.Mode.FREQUENCYGROUPS;
 			}
 			else if (pdepModelEnlarger.getPDepKineticsEstimator() instanceof Chemdis && SpectroscopicData.mode != SpectroscopicData.Mode.THREEFREQUENCY) {
-				System.out.println("Warning: Switching SpectroscopicDataEstimator to three-frequency model.");
+				Logger.warning("Switching SpectroscopicDataEstimator to three-frequency model.");
 				SpectroscopicData.mode = SpectroscopicData.Mode.THREEFREQUENCY;
 			}
 
@@ -4630,22 +4516,22 @@ public class ReactionModelGenerator {
 				
 				String pDepKinType = st.nextToken();
 				if (pDepKinType.toLowerCase().equals("chebyshev")) {
-					PDepRateConstant.setMode(PDepRateConstant.Mode.CHEBYSHEV);
+					PDepRateConstant.setDefaultMode(PDepRateConstant.Mode.CHEBYSHEV);
 					// Default is to cubic order for basis functions
 					FastMasterEqn.setNumTBasisFuncs(4);
 					FastMasterEqn.setNumPBasisFuncs(4);
 				}
 				else if (pDepKinType.toLowerCase().equals("pdeparrhenius"))
-					PDepRateConstant.setMode(PDepRateConstant.Mode.PDEPARRHENIUS);
+					PDepRateConstant.setDefaultMode(PDepRateConstant.Mode.PDEPARRHENIUS);
 				else if (pDepKinType.toLowerCase().equals("rate"))
-					PDepRateConstant.setMode(PDepRateConstant.Mode.RATE);
+					PDepRateConstant.setDefaultMode(PDepRateConstant.Mode.RATE);
 				else
 					throw new InvalidSymbolException("condition.txt: Unknown PDepKineticsModel = " + pDepKinType);
 
 				// For Chebyshev polynomials, optionally specify the number of
 				// temperature and pressure basis functions
 				// Such a line would read, e.g.: "PDepKineticsModel: Chebyshev 4 4"
-				if (st.hasMoreTokens() && PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV) {
+				if (st.hasMoreTokens() && PDepRateConstant.getDefaultMode() == PDepRateConstant.Mode.CHEBYSHEV) {
 					try {
 						int numTBasisFuncs = Integer.parseInt(st.nextToken());
 					int numPBasisFuncs = Integer.parseInt(st.nextToken());
@@ -4737,7 +4623,7 @@ public class ReactionModelGenerator {
 			// Set temperatures and pressures (if not already set manually)
 			if (temperatures == null) {
 				temperatures = new Temperature[Tnumber];
-				if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV) {
+				if (PDepRateConstant.getDefaultMode() == PDepRateConstant.Mode.CHEBYSHEV) {
 					// Use the Gauss-Chebyshev points
 					// The formula for the Gauss-Chebyshev points was taken from
 					// the Chemkin theory manual
@@ -4758,7 +4644,7 @@ public class ReactionModelGenerator {
 			}
 			if (pressures == null) {
 				pressures = new Pressure[Pnumber];
-				if (PDepRateConstant.getMode() == PDepRateConstant.Mode.CHEBYSHEV) {
+				if (PDepRateConstant.getDefaultMode() == PDepRateConstant.Mode.CHEBYSHEV) {
 					// Use the Gauss-Chebyshev points
 					// The formula for the Gauss-Chebyshev points was taken from
 					// the Chemkin theory manual
@@ -4878,8 +4764,9 @@ public class ReactionModelGenerator {
     }
     
     public LinkedHashMap populateInitialStatusListWithReactiveSpecies(BufferedReader reader) throws IOException {
-    	LinkedHashMap speciesSet = new LinkedHashMap();
+        LinkedHashMap speciesSet = new LinkedHashMap();
     	LinkedHashMap speciesStatus = new LinkedHashMap();
+        LinkedHashMap speciesFromInputFileSet = new LinkedHashMap();
     	int numSpeciesStatus = 0;
 		String line = ChemParser.readMeaningfulLine(reader, true);
 		while (!line.equals("END")) {
@@ -4896,7 +4783,7 @@ public class ReactionModelGenerator {
 			//		file generated will be valid when run in Chemkin
 			try {
 				int doesNameBeginWithNumber = Integer.parseInt(name.substring(0,1));
-				System.out.println("\nA species name should not begin with a number." +
+				Logger.critical("\nA species name should not begin with a number." +
 								   " Please rename species: " + name + "\n");
 				System.exit(0);
 			} catch (NumberFormatException e) {
@@ -4917,10 +4804,14 @@ public class ReactionModelGenerator {
 				cg = ChemGraph.make(g);
 			}
 			catch (ForbiddenStructureException e) {
-				System.out.println("Forbidden Structure:\n" + e.getMessage());
+				Logger.error("Forbidden Structure:\n" + e.getMessage());
 				throw new InvalidSymbolException("A species in the input file has a forbidden structure.");
 			}
 			//System.out.println(name);
+
+                        // Check to see if chemgraph already appears in the input file
+                        addChemGraphToListIfNotPresent_ElseTerminate(speciesFromInputFileSet,cg,name);
+
 			Species species = Species.make(name,cg);
 			int numConcentrations = 0;	// The number of concentrations read-in for each species
 			
@@ -4941,7 +4832,12 @@ public class ReactionModelGenerator {
 				else if (reactive.equalsIgnoreCase("constantconcentration"))
                     IsConstantConcentration=true;
 				else {
-					concentration = Double.parseDouble(reactive);
+					try {
+						concentration = Double.parseDouble(reactive);
+					} catch (NumberFormatException e) {
+						System.out.println(String.format("Unable to read concentration value '%s'. Check syntax of input line '%s'.",reactive,line));
+						throw e;
+					}
 					if (unit.equals("mole/l") || unit.equals("mol/l") || unit.equals("mole/liter") || unit.equals("mol/liter")) {
 						concentration /= 1000;
 						unit = "mol/cm3";
@@ -4954,6 +4850,7 @@ public class ReactionModelGenerator {
 						concentration /= 6.022e23;
 					}
 					else if (!unit.equals("mole/cm3") && !unit.equals("mol/cm3")) {
+						System.out.println(String.format("Unable to read concentration units '%s'. Check syntax of input line '%s'.",unit,line));
 						throw new InvalidUnitException("Species Concentration in condition.txt!");
 					}
 					SpeciesStatus ss = new SpeciesStatus(species,1,concentration,0.0);
@@ -4967,7 +4864,7 @@ public class ReactionModelGenerator {
 			//	numberOfEquivalenceRatios will be initialized.
 			boolean goodToGo = areTheNumberOfConcentrationsConsistent(numConcentrations);
 			if (!goodToGo) {
-				System.out.println("\n\nThe number of concentrations (" + numConcentrations + ") supplied for species " + species.getName() +
+				Logger.critical("\n\nThe number of concentrations (" + numConcentrations + ") supplied for species " + species.getName() +
 						"\nis not consistent with the number of concentrations (" + numberOfEquivalenceRatios + ") " +
 						"supplied for all previously read-in species \n\n" +
 						"Terminating RMG simulation.");
@@ -5060,7 +4957,7 @@ public class ReactionModelGenerator {
 			//	numberOfEquivalenceRatios will be initialized.
 			boolean goodToGo = areTheNumberOfConcentrationsConsistent(numberOfConcentrations);
 			if (!goodToGo) {
-				System.out.println("\n\nThe number of concentrations (" + numberOfConcentrations + ") supplied for species " + name +
+				Logger.critical("\n\nThe number of concentrations (" + numberOfConcentrations + ") supplied for species " + name +
 						"\nis not consistent with the number of concentrations (" + numberOfEquivalenceRatios + ") " +
 						"supplied for all previously read-in species \n\n" +
 						"Terminating RMG simulation.");
@@ -5077,7 +4974,7 @@ public class ReactionModelGenerator {
         	String dummyString = st.nextToken();	// This should hold "MaxCarbonNumberPerSpecies:"
         	int maxCNum = Integer.parseInt(st.nextToken());
         	ChemGraph.setMaxCarbonNumber(maxCNum);
-        	System.out.println("Note: Overriding RMG-defined MAX_CARBON_NUM with user-defined value: " + maxCNum);
+        	Logger.info("Note: Overriding default MAX_CARBON_NUM with user-defined value: " + maxCNum);
         	line = ChemParser.readMeaningfulLine(reader, true);
         }
         if (line.startsWith("MaxOxygenNumber")) {
@@ -5085,7 +4982,7 @@ public class ReactionModelGenerator {
         	String dummyString = st.nextToken();	// This should hold "MaxOxygenNumberPerSpecies:"
         	int maxONum = Integer.parseInt(st.nextToken());
         	ChemGraph.setMaxOxygenNumber(maxONum);
-        	System.out.println("Note: Overriding RMG-defined MAX_OXYGEN_NUM with user-defined value: " + maxONum);
+        	Logger.info("Note: Overriding default MAX_OXYGEN_NUM with user-defined value: " + maxONum);
         	line = ChemParser.readMeaningfulLine(reader, true);
         }
         if (line.startsWith("MaxRadicalNumber")) {
@@ -5093,7 +4990,7 @@ public class ReactionModelGenerator {
         	String dummyString = st.nextToken();	// This should hold "MaxRadicalNumberPerSpecies:"
         	int maxRadNum = Integer.parseInt(st.nextToken());
         	ChemGraph.setMaxRadicalNumber(maxRadNum);
-        	System.out.println("Note: Overriding RMG-defined MAX_RADICAL_NUM with user-defined value: " + maxRadNum);
+        	Logger.info("Note: Overriding default MAX_RADICAL_NUM with user-defined value: " + maxRadNum);
         	line = ChemParser.readMeaningfulLine(reader, true);
         }
         if (line.startsWith("MaxSulfurNumber")) {
@@ -5101,7 +4998,7 @@ public class ReactionModelGenerator {
         	String dummyString = st.nextToken();	// This should hold "MaxSulfurNumberPerSpecies:"
         	int maxSNum = Integer.parseInt(st.nextToken());
         	ChemGraph.setMaxSulfurNumber(maxSNum);
-        	System.out.println("Note: Overriding RMG-defined MAX_SULFUR_NUM with user-defined value: " + maxSNum);
+        	Logger.info("Note: Overriding default MAX_SULFUR_NUM with user-defined value: " + maxSNum);
         	line = ChemParser.readMeaningfulLine(reader, true);
         }
         if (line.startsWith("MaxSiliconNumber")) {
@@ -5109,7 +5006,7 @@ public class ReactionModelGenerator {
         	String dummyString = st.nextToken();	// This should hold "MaxSiliconNumberPerSpecies:"
         	int maxSiNum = Integer.parseInt(st.nextToken());
         	ChemGraph.setMaxSiliconNumber(maxSiNum);
-        	System.out.println("Note: Overriding RMG-defined MAX_SILICON_NUM with user-defined value: " + maxSiNum);
+        	Logger.info("Note: Overriding default MAX_SILICON_NUM with user-defined value: " + maxSiNum);
         	line = ChemParser.readMeaningfulLine(reader, true);
         }
         if (line.startsWith("MaxHeavyAtom")) {
@@ -5117,7 +5014,15 @@ public class ReactionModelGenerator {
         	String dummyString = st.nextToken();	// This should hold "MaxHeavyAtomPerSpecies:"
         	int maxHANum = Integer.parseInt(st.nextToken());
         	ChemGraph.setMaxHeavyAtomNumber(maxHANum);
-        	System.out.println("Note: Overriding RMG-defined MAX_HEAVYATOM_NUM with user-defined value: " + maxHANum);
+        	Logger.info("Note: Overriding default MAX_HEAVYATOM_NUM with user-defined value: " + maxHANum);
+        	line = ChemParser.readMeaningfulLine(reader, true);
+        }
+        if (line.startsWith("MaxCycleNumber")) {
+        	StringTokenizer st = new StringTokenizer(line);
+        	String dummyString = st.nextToken();	// This should hold "MaxCycleNumberPerSpecies:"
+        	int maxCycleNum = Integer.parseInt(st.nextToken());
+        	ChemGraph.setMaxCycleNumber(maxCycleNum);
+        	Logger.info("Note: Overriding default MAX_CYCLE_NUM with user-defined value: " + maxCycleNum);
         	line = ChemParser.readMeaningfulLine(reader, true);
         }
         return line;
@@ -5169,10 +5074,9 @@ public class ReactionModelGenerator {
      	int numPTLs = 0;
      	String line = ChemParser.readMeaningfulLine(reader, true);
      	while (!line.equals("END")) {
-     		String[] tempString = line.split("Name: ");
-     		String name = tempString[tempString.length-1].trim();
+     		String name = extractLibraryName(line);
 			line = ChemParser.readMeaningfulLine(reader, true);
-			tempString = line.split("Location: ");
+			String[] tempString = line.split("Location: ");
 			String path = tempString[tempString.length-1].trim();
 			if (numPTLs==0) {
              	setPrimaryTransportLibrary(new PrimaryTransportLibrary(name,path));
@@ -5203,9 +5107,9 @@ public class ReactionModelGenerator {
      		String name = "SolventLibrary";
 			String path = "SolventLibrary";
 
-            setSolventLibrary(new SolventLibrary(name,path));
-            getSolventLibrary().readSolventLibrary(name,path);
-            setSolvent(new SolventData(solventname));
+            setSolventLibrary(new SolventLibrary(name,path)); // the constructor with (name,path) reads in the library at construction time.
+			SolventData solvent = getSolventLibrary().getSolventData(solventname);
+            setSolvent(solvent);
     }
 
    
@@ -5262,6 +5166,8 @@ public class ReactionModelGenerator {
 		double count = 0.0;
 		for (Iterator iter = cerm.getReactedReactionSet().iterator(); iter.hasNext(); ) {
 			Reaction rxn = (Reaction) iter.next();
+            // The model core stores reactions in both directions
+            // To avoid double-counting we must count each of these as 1/2
 			if (rxn.hasReverseReaction()) count += 0.5;
 			else                          count += 1;
 		}
@@ -5270,8 +5176,9 @@ public class ReactionModelGenerator {
 		count = 0.0;
 		for (Iterator iter = cerm.getUnreactedReactionSet().iterator(); iter.hasNext(); ) {
 			Reaction rxn = (Reaction) iter.next();
-			if (rxn.hasReverseReaction()) count += 0.5;
-			else                          count += 1;
+            // The model edge stores reactions in only one direction, so each
+            // edge reaction counts as 1
+            count += 1;
 		}
 		numberOfEdgeReactions = (int) Math.round(count);
 
@@ -5280,8 +5187,17 @@ public class ReactionModelGenerator {
 			numberOfEdgeReactions += PDepNetwork.getNumEdgeReactions(cerm);
 		}
 
-		System.out.println("The model core has " + Integer.toString(numberOfCoreReactions) + " reactions and "+ Integer.toString(numberOfCoreSpecies) + " species.");
-		System.out.println("The model edge has " + Integer.toString(numberOfEdgeReactions) + " reactions and "+ Integer.toString(numberOfEdgeSpecies) + " species.");
+		Logger.info("");
+        Logger.info("The model core has " + Integer.toString(numberOfCoreReactions) + " reactions and "+ Integer.toString(numberOfCoreSpecies) + " species.");
+		Logger.info("The model edge has " + Integer.toString(numberOfEdgeReactions) + " reactions and "+ Integer.toString(numberOfEdgeSpecies) + " species.");
+
+        // If pressure dependence is on, print some information about the networks
+        if (reactionModelEnlarger instanceof RateBasedPDepRME) {
+			int numberOfNetworks = PDepNetwork.getNetworks().size();
+            int numberOfPathReactions = PDepNetwork.getNumPathReactions(cerm);
+            int numberOfNetReactions = PDepNetwork.getNumNetReactions(cerm);
+            Logger.info("There are " + Integer.toString(numberOfNetworks) + " partial pressure-dependent networks containing " + Integer.toString(numberOfPathReactions) + " path and " + Integer.toString(numberOfNetReactions) + " net reactions.");
+		}
 
 	}
 	
@@ -5294,11 +5210,25 @@ public class ReactionModelGenerator {
 		return true;
 	}
 
-        public LinkedHashSet extractSeedMechRxnsIfTheyExist() {
-            LinkedHashSet seedmechnonpdeprxns = new LinkedHashSet();
-            if (seedMechanism != null)  seedmechnonpdeprxns = seedMechanism.getReactionSet();
-            return seedmechnonpdeprxns;
+        public static void addChemGraphToListIfNotPresent_ElseTerminate(LinkedHashMap speciesMap, ChemGraph cg, String name) {
+            if (speciesMap.containsKey(cg)) {
+                Logger.error("The same ChemGraph appears multiple times in the user-specified input file\n" +
+                        "Species " + name + " has the same ChemGraph as " +
+                        (speciesMap.get(cg)));
+                System.exit(0);
+            } else
+                speciesMap.put(cg, name);
         }
+
+    public String extractLibraryName(String line) {
+        String[] tempString = line.split("Name: ");
+        String name = tempString[tempString.length-1].trim();
+        if (name.contains("//")) {
+            tempString = line.split("//");
+            name = tempString[0].trim();
+        }
+        return name;
+    }
 }
 /*********************************************************************
  File Path	: RMG\RMG\jing\rxnSys\ReactionModelGenerator.java

@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -35,6 +35,7 @@ import java.util.*;
 import jing.chem.Species;
 import jing.param.Global;
 import jing.param.Temperature;
+import jing.rxnSys.Logger;
 
 //## package jing::rxn 
 
@@ -88,17 +89,8 @@ public class TemplateReactionGenerator implements ReactionGenerator {
         	// the reaction template has only one reactant, we only need to loop over the whole species seed set to find a match
         	double startTime = System.currentTimeMillis();
 			if (current_template.hasOneReactant()) {
-	        	/*
-	        	 * Added by MRH on 15-Jun-2009
-	        	 * Display more information to the user:
-	        	 * 	This println command informs the user which rxn family template
-	        	 *		the species is reacting against
-	        	 */
-	        	System.out.println("Generating pressure dependent network for " + p_species.getChemkinName() + ": " + current_template.name);
-        		
 				LinkedHashSet current_reactions = current_template.reactOneReactant(p_species);
 				pdepReactionSet.addAll(current_reactions);
-				
         	}
         }
 		Runtime runTime = Runtime.getRuntime();
@@ -126,21 +118,14 @@ public class TemplateReactionGenerator implements ReactionGenerator {
 		String longestTemplate = "";
 		StringBuffer HAbs = new StringBuffer();//"H_Abstraction");
 		
-		HashSet pdepReactionSet = new HashSet();
-		
         // add here the algorithm to generate reaction
         // loop over all the reaction template to find any possible match between the species seed set and the reaction template library
         Iterator template_iter = reactionTemplateLibrary.getReactionTemplate();
         while (template_iter.hasNext()) {
         	ReactionTemplate current_template = (ReactionTemplate)template_iter.next();
         	if (specificRxnFamily.equals("All") || specificRxnFamily.equals(current_template.name)) { 
-	        	/*
-	        	 * Added by MRH on 12-Jun-2009
-	        	 * Display more information to the user:
-	        	 * 	This println command informs the user which rxn family template
-	        	 *		the new core species is reacting against
-	        	 */
-	        	System.out.println("Reacting " + newCoreSpecies.getChemkinName() + " with the core: " + current_template.name);
+
+	        	Logger.verbose("Reacting " + newCoreSpecies.getChemkinName() + " with the core: " + current_template.name);
 	        	
 	        	// the reaction template has only one reactant, we only need to loop over the whole species seed set to find a match
 	        	double startTime = System.currentTimeMillis();
@@ -153,8 +138,7 @@ public class TemplateReactionGenerator implements ReactionGenerator {
 	        	}
 				
 	        	// the reaction template has two reactants, we need to check all the possible combination of two species
-				
-				
+	
 	        	else if (current_template.hasTwoReactants()) {
 	//        		LinkedHashSet current_reactions = new LinkedHashSet();
 	        		StructureTemplate structTemp = current_template.structureTemplate;
@@ -249,8 +233,6 @@ public class TemplateReactionGenerator implements ReactionGenerator {
 				}
         	}
         }
-		
-        newCoreSpecies.addPdepPaths(pdepReactionSet);
         
 		Global.enlargerInfo.append(newCoreSpecies.getChemkinName() + "\t" + singleReaction + "\t" + doubleReaction + "\t" + longestTime +"\t" + longestTemplate + "\t" + HAbs.toString() + "\n");
 		
@@ -264,10 +246,7 @@ public class TemplateReactionGenerator implements ReactionGenerator {
 //        Global.RT_reactTwoReactants += t;
 		
         return reaction_set;
-        
-        
-        
-        //#]
+
     }
     
     public ChemGraph generateCGcopyIfNecessary(ChemGraph cg1, ChemGraph cg2) {
@@ -276,7 +255,7 @@ public class TemplateReactionGenerator implements ReactionGenerator {
 			try {
 				cg_copy = ChemGraph.copy(cg2);
 			} catch (ForbiddenStructureException e) {
-				System.out.println("Forbidden Structure encountered in react(): " + e.toString());
+				Logger.error("Forbidden Structure encountered in react(): " + e.toString());
 			}
 		} else return cg1;
 		return cg_copy;

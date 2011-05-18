@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -77,7 +77,7 @@ public class FreeElectron {
     }
     
     //## operation creat(String) 
-    private static FreeElectron creat(String p_name) throws UnknownSymbolException {
+    private static FreeElectron create(String p_name) throws UnknownSymbolException {
         //#[ operation creat(String) 
         FreeElectron electron = null;
         
@@ -141,7 +141,7 @@ public class FreeElectron {
         	String internalName = translateName(p_name);
         	FreeElectron electron = freeElectronDictionary.getFreeElectron(internalName);
         	if (electron == null) {
-        		electron = creat(internalName);
+        		electron = create(internalName);
         		freeElectronDictionary.putFreeElectron(electron);
         	}
         	return electron;

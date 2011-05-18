@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -117,6 +117,7 @@ public class Therfit {
         	in.close();
         }
         catch (Exception e) {
+			e.printStackTrace(System.out);
         	System.out.println("Wrong output fort.25 from therfit!");
         	System.exit(0);
         }
@@ -207,8 +208,12 @@ public class Therfit {
 			int exitValue = therfit.waitFor();
 			br.close();
 			isr.close();
+			is.close();
+			therfit.getInputStream().close();
+			therfit.getOutputStream().close();
 		}
 		catch (Exception e) {
+			e.printStackTrace(System.out);
 			System.out.println("Error in run therfit!");
 			System.exit(0);
 		}
@@ -254,6 +259,7 @@ public class Therfit {
         	nasaThermoData = new NASAThermoData(nasaString);
         }
         catch (Exception e) {
+			e.printStackTrace(System.out);
         	System.out.println("Wrong output from therfit!");
         	System.exit(0);
         }

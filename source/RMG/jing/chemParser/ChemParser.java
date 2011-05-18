@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -44,6 +44,7 @@ import jing.rxn.ArrheniusKinetics;
 import jing.chemUtil.HierarchyTree;
 import jing.rxn.ArrheniusEPKinetics;
 import jing.rxnSys.CoreEdgeReactionModel;
+import jing.rxnSys.Logger;
 
 //## package jing::chemParser
 
@@ -770,7 +771,7 @@ public class ChemParser {
         		if (spe == null) {
         			spe = (Species)p_speciesSet.get(origname);
         			if (spe == null) {
-        				System.out.println("Error in parseReactionSpecies: RMG cannot find the following species in Dictionary: " + name);
+        				Logger.error("Error in parseReactionSpecies: RMG cannot find the following species in Dictionary: " + name);
         				throw new InvalidStructureException("unknown reactant/product: " + name);
         			}
         		}
@@ -969,9 +970,9 @@ public class ChemParser {
 			else {
 				Species species = (Species)speciesList.get(name);
         		if (species == null) {
-        			System.out.println("Error in reading third-body colliders: ");
-        			System.out.println("The species '" + name + "' is not defined in the species.txt file.");
-        			System.out.println("Terminating RMG run");
+        			Logger.critical("Error in reading third-body colliders: ");
+        			Logger.info("The species '" + name + "' is not defined in the species.txt file.");
+        			Logger.info("Terminating RMG run");
         			System.exit(0);
         		}
         		name = species.getChemkinName();
@@ -1168,6 +1169,7 @@ public class ChemParser {
         	return g;
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
 			if (e.getMessage() == null)
 				throw new IOException("Couldn't read ChemGraph: " + e.getClass().getName());
 			else
@@ -1393,7 +1395,7 @@ public class ChemParser {
         	return g;
         }
         catch (InvalidGraphFormatException e) {
-			System.out.println("Error on line: "+line);
+			Logger.error("Error on line: "+line);
 			throw e;
         }
 
@@ -1661,6 +1663,7 @@ public class ChemParser {
         	return result;
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
         	throw new InvalidUnionFormatException();
         }
     }

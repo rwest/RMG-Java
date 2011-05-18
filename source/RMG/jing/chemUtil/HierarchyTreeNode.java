@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -33,6 +33,7 @@ package jing.chemUtil;
 import jing.chem.*;
 import java.util.*;
 import jing.chem.Matchable;
+import jing.rxnSys.Logger;
 
 //## package jing::chemUtil 
 
@@ -112,7 +113,7 @@ public class HierarchyTreeNode extends TreeNode {
         //#[ operation addChildren(HierarchyTreeNode) 
 			if (!(p_child.isSubAtCentralNodes(this))) {
 				String s = "Error in database: " + ((Matchable)(p_child.element)).getName() +" is not actually a child of "+ ((Matchable)(this.element)).getName();
-				System.out.println(s);
+				Logger.error(s);
 				//throw new InvalidHierarchyRelationException(s);
 			}
         

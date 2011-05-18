@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -51,6 +51,7 @@ public class CoreEdgeReactionModel implements ReactionModel {
     
     protected Core core;
     protected Edge edge;
+	protected SeedMechanism seed;
 	
     
     // Constructors
@@ -74,11 +75,8 @@ public class CoreEdgeReactionModel implements ReactionModel {
     //## operation CoreEdgeReactionModel(HashSet,HashSet) 
     public  CoreEdgeReactionModel(LinkedHashSet p_reactedSpeciesSet, LinkedHashSet p_reactionSet) {
         initRelations();
-        
-        
         core.setSpeciesSet(p_reactedSpeciesSet);
         addReactionSet(p_reactionSet);
-
         //#]
     }
 
@@ -100,7 +98,13 @@ public class CoreEdgeReactionModel implements ReactionModel {
 		}
 	}
     
-    
+    public void setSeedMechanism(SeedMechanism p_seedMechanism) {
+		seed = p_seedMechanism;
+	}
+    public SeedMechanism getSeedMechanism() {
+		return seed;
+	}
+		
     public void addPrimaryKineticSet(LinkedHashSet p_reactionSet) {
         
         for (Iterator iter = p_reactionSet.iterator(); iter.hasNext(); ) {
@@ -159,9 +163,6 @@ public class CoreEdgeReactionModel implements ReactionModel {
         }
         
         return;
-        
-        
-        //#]
     }
     
     //## operation addReactedReaction(Reaction) 
@@ -186,9 +187,7 @@ public class CoreEdgeReactionModel implements ReactionModel {
         }
         catch (InvalidReactedReactionException e) {
         	throw new InvalidReactedReactionException(e.getMessage());
-        }   
-        
-        
+        }
         //#]
     }
     
@@ -314,7 +313,7 @@ public class CoreEdgeReactionModel implements ReactionModel {
 		Iterator rxnIter = reactions.iterator();
 		while (rxnIter.hasNext()){
 			Reaction rxn = (Reaction)rxnIter.next();
-			System.out.println(rxn.getStructure().toString());
+			Logger.info(rxn.getStructure().toString());
 			addUnreactedReaction(rxn);
 		}
     }
@@ -324,8 +323,7 @@ public class CoreEdgeReactionModel implements ReactionModel {
         //#[ operation addUnreactedSpecies(Species) 
         if (containsAsReactedSpecies(p_species)) {
         	// this is not a unreacted species
-        	System.out.println("This is a reacted species " + p_species.getFullName());
-        	System.out.println("Can't add it into unreacted species set!");
+        	Logger.info(String.format("%s is a core species. Can't add it to edge species set.",p_species.getFullName()));
         }
         else {
         	getUnreactedSpeciesSet().add(p_species);
@@ -335,21 +333,11 @@ public class CoreEdgeReactionModel implements ReactionModel {
 	
 //	## operation addUnreactedSpecies(Species) 
     public void addUnreactedSpeciesSet(LinkedHashSet p_species) {
-        //#[ operation addUnreactedSpecies(Species)
 		Iterator speciesIter = p_species.iterator();
 		while (speciesIter.hasNext()){
 			Species species = (Species)speciesIter.next();
-			if (containsAsReactedSpecies(species)) {
-	        	// this is not a unreacted species
-	        	System.out.println("This is a reacted species " + species.getFullName());
-	        	System.out.println("Can't add it into unreacted species set!");
-	        }
-	        else {
-	        	getUnreactedSpeciesSet().add(species);
-	        }
+			addUnreactedSpecies(species);
 		}
-        
-        //#]
     }
     
     /**
@@ -363,17 +351,21 @@ public class CoreEdgeReactionModel implements ReactionModel {
 	
 	/**
     Requires: the reactionSpecies set and unreactedSpecies set has been defined properly.
-    Effects: according to the reaction's reactants and products, categorize the pass-in reaction as reacted reaction (return 1), or unreacted reaction(return -1), or reaction not in the model (return 0).
+    Effects: according to the reaction's reactants and products, categorize the pass-in reaction as 
+	         * reacted reaction (return 1) all reactants and products in core.
+	         * unreacted reaction(return -1) a product is on the edge
+	         * reaction not in the model (return 0) a reactant is not in the core
     Modifies:
-    */
+	         if products are not in model, it adds them to the edge (unreacted species).
+	 */
     //## operation categorizeReaction(Reaction) 
     public int categorizeReaction(Structure p_structure) {
         //#[ operation categorizeReaction(Reaction) 
-	if (p_structure == null) throw new NullPointerException();
-	
-	if (!reactantsInCoreQ(p_structure)){
-	    return 0;
-	}
+		if (p_structure == null) throw new NullPointerException();
+		
+		if (!reactantsInCoreQ(p_structure)){
+			return 0;
+		}
         
         int type = 1;
         Iterator iter = p_structure.getProducts();
@@ -576,13 +568,11 @@ public class CoreEdgeReactionModel implements ReactionModel {
         return getReactedSpeciesSet();
         //#]
     }
-    
+	
     //## operation getUnreactedReactionSet() 
     public LinkedHashSet getUnreactedReactionSet() {
         //#[ operation getUnreactedReactionSet() 
         return getEdge().getReactionSet();
-        
-        
         //#]
     }
 

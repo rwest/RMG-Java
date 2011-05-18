@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -375,7 +375,7 @@ public class PDepNetwork {
 		for (ListIterator<PDepReaction> iter = pathReactionList.listIterator(); iter.hasNext(); ) {
 			PDepReaction rxn = iter.next();
 			if (rxn.equals(newRxn)) {
-				if (addKinetics) rxn.addAdditionalKinetics(newRxn.getKinetics()[0], 1);
+				if (addKinetics) rxn.addAdditionalKinetics(newRxn.getKinetics()[0], 1, false);
 				return;
 			}
 		}
@@ -691,11 +691,17 @@ public class PDepNetwork {
 				PDepNetwork n = iter.next();
 				if (n.contains(reactant)) {
 					if (n.getIsomer(reactant).getIncluded())
+					{
 						reac_pdn = n;
+						if (prod_pdn != null) break; // have now found both prod_pdn and reac_pdn.
+					}
 				}
 				if (n.contains(product)) {
 					if (n.getIsomer(product).getIncluded())
+					{
 						prod_pdn = n;
+						if (reac_pdn != null) break; // have now found both reac_pdn and prod_pdn.
+					}
 				}
 			}
 
@@ -879,6 +885,37 @@ public class PDepNetwork {
 			}
 		}
 		return edgeReactions;
+	}
+
+	/**
+	 * Counts the number of total path reactions in the pressure-dependent
+     * networks.
+	 * @param cerm The current core/edge reaction model
+	 * @return The number of path reactions found
+	 */
+	public static int getNumPathReactions(CoreEdgeReactionModel cerm) {
+		int count = 0;
+        for (ListIterator<PDepNetwork> iter0 = networks.listIterator(); iter0.hasNext(); ) {
+			PDepNetwork pdn = iter0.next();
+            count += pdn.getPathReactions().size();
+		}
+        return count;
+	}
+
+	/**
+	 * Counts the number of total net reactions in the pressure-dependent
+     * networks, including all core-to-core ("core"), core-to-edge ("edge"), and
+     * edge-to-edge reactions.
+	 * @param cerm The current core/edge reaction model
+	 * @return The number of net reactions found
+	 */
+	public static int getNumNetReactions(CoreEdgeReactionModel cerm) {
+		int count = 0;
+        for (ListIterator<PDepNetwork> iter0 = networks.listIterator(); iter0.hasNext(); ) {
+			PDepNetwork pdn = iter0.next();
+            count += pdn.getNetReactions().size();
+		}
+        return count;
 	}
 
 	/**

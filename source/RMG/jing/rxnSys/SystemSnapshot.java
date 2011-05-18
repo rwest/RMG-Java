@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -402,15 +402,15 @@ public class SystemSnapshot {
 	
 	public String toString() {
 		String output = "";
-		output += "Temperature=" + temperature.getK() + "K\n";
-		output += "Pressure=" + pressure.getAtm() + "atm\n";
+		output += "Temperature  = " + temperature.getK() + " K\n";
+		output += "Pressure     = " + pressure.getAtm() + " atm\n";
 		for (Iterator iter=getSpeciesStatus(); iter.hasNext();) {
 			SpeciesStatus ss = (SpeciesStatus)iter.next();
-			output += ss.getSpecies().getName() + " " + ss.getConcentration() + "\n";
+			output += String.format("%-12s = %9.3e mol/cm^3\n", ss.getSpecies().getName(), ss.getConcentration());
 			}
 		for (Iterator iter=getInertGas(); iter.hasNext();) {
 			String name = iter.next().toString();
-			output += name + " " + inertGas.get(name) + "\n";
+			output += String.format("%-12s = %9.3e mol/cm^3\n", name, inertGas.get(name));
 			}
 		return output;
 	}

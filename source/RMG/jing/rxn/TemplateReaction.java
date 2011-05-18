@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -36,6 +36,7 @@ import jing.chemUtil.Node;
 
 import java.util.*;
 import jing.param.*;
+import jing.rxnSys.Logger;
 import jing.rxnSys.SystemSnapshot;
 
 //## package jing::rxn 
@@ -63,7 +64,7 @@ public class TemplateReaction extends Reaction {
         kinetics = p_kinetics;
         reactionTemplate = p_template;
         if (kinetics != null)	
-        	kineticsFromPrimaryKineticLibrary = p_kinetics[0].getFromPrimaryKineticLibrary();
+        	kineticsFromPrimaryKineticLibrary = p_kinetics[0].isFromPrimaryKineticLibrary();
     }
 
     public  TemplateReaction() {
@@ -155,11 +156,14 @@ public class TemplateReaction extends Reaction {
 
 		Structure rs = new Structure(fproduct, freactant, -1 * this.getDirection());
 		Structure rsSp = new Structure(fsSp.products, fsSp.reactants, -1 * this.getDirection());
+		
+		// If it's in the reverse ReactionTemplate.reactionDictionaryByStructure then just return that one.
 		TemplateReaction rr = rRT.getReactionFromStructure(rsSp);
 		if (rr != null) {
 			rr.setReverseReaction(this);
 			return rr;
 		}
+		
 		int rNum = fproduct.size();
 		Kinetics[] k = rRT.findReverseRateConstant(rs);
 		if (k == null && rRT.name.equals("R_Recombination")) {
@@ -292,6 +296,34 @@ public class TemplateReaction extends Reaction {
 				g1.setCentralNode(4, n4);
 			k = rRT.findRateConstant(rs);
 		}
+
+                //  Adding another elseif statement for Aaron Vandeputte rxn family
+                //  RMG expects to find *1 and *2 in the same ChemGraph (for this rxn family)
+                //      but will instead find *1 and *3 in the same ChemGraph (if we've reached this far)
+                //  Need to switch *2 and *3
+                else if (k == null && rRT.name.equals("substitutionS")) {
+                    ChemGraph cg1 = ((ChemGraph) fproduct.get(0));
+                    ChemGraph cg2 = ((ChemGraph) fproduct.get(1));
+                    Graph g1 = cg1.getGraph();
+                    Graph g2 = cg2.getGraph();
+                    Node n3 = (Node) g1.getCentralNodeAt(3);
+                    if (n3 == null) {
+                        // Switch the identities of cg1/g1 and cg2/g2
+                        cg1 = ((ChemGraph) fproduct.get(1));
+                        g1 = cg1.getGraph();
+                        cg2 = ((ChemGraph) fproduct.get(0));
+                        g2 = cg2.getGraph();
+                        n3 = (Node) g1.getCentralNodeAt(3);
+                    }
+                    Node n1 = (Node) g1.getCentralNodeAt(1);
+                    g1.clearCentralNode();
+                    g1.setCentralNode(2, n3);
+                    g1.setCentralNode(1, n1);
+                    Node n2 = (Node) g2.getCentralNodeAt(2);
+                    g2.clearCentralNode();
+                    g2.setCentralNode(3, n2);
+                    k = rRT.findRateConstant(rs);
+                }
 		
 		else if (k == null && rRT.name.equals("intra_H_migration")) {
 			ChemGraph cg = ((ChemGraph) fproduct.get(0));
@@ -360,7 +392,7 @@ public class TemplateReaction extends Reaction {
 			// Create a new reaction.
 			reaction = new TemplateReaction(p_structureSp, p_kinetics, p_template);
 			// DEBUG: Tell console I made this reaction
-			System.out.println("Created new reaction: " + reaction.toString());
+			Logger.info("Created new " + p_template.getName() + " reaction: " + reaction.toString());
 
 			if (reaction.isBackward()) {
 				
@@ -447,18 +479,11 @@ public class TemplateReaction extends Reaction {
         return pDepNetwork;
     }
     
-      public double getRateConstant(Temperature p_temperature, Pressure p_pressure){
-	//public double getRateConstant(){
-		if (rateConstant == 0)
-                        rateConstant = calculateTotalPDepRate(p_temperature, p_pressure);
-			//rateConstant = calculateTotalPDepRate(Global.temperature);
-		return rateConstant;
-	}
 	
     public ReactionTemplate getReactionTemplate() {
         return reactionTemplate;
     }
-    
+	
 }
 /*********************************************************************
 	File Path	: RMG\RMG\jing\rxn\TemplateReaction.java

@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -143,8 +143,7 @@ public abstract class JDAS implements DAESolver {
     }
 
     public StringBuilder generatePDepODEReactionList(ReactionModel p_reactionModel,
-            SystemSnapshot p_beginStatus, Temperature p_temperature, Pressure p_pressure,
-            LinkedHashSet nonpdep_from_seed) {
+            SystemSnapshot p_beginStatus, Temperature p_temperature, Pressure p_pressure) {
 
         StringBuilder rString = new StringBuilder();
         StringBuilder arrayString = new StringBuilder();
@@ -156,7 +155,7 @@ public abstract class JDAS implements DAESolver {
         LinkedList nonPDepList = new LinkedList();
         LinkedList pDepList = new LinkedList();
 
-        generatePDepReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure, nonPDepList, pDepList, nonpdep_from_seed);
+        generatePDepReactionList(p_reactionModel, p_beginStatus, p_temperature, p_pressure, nonPDepList, pDepList);
 
         int size = nonPDepList.size() + pDepList.size() + duplicates.size();
 
@@ -261,39 +260,12 @@ public abstract class JDAS implements DAESolver {
 
     public void generatePDepReactionList(ReactionModel p_reactionModel,
             SystemSnapshot p_beginStatus, Temperature p_temperature, Pressure p_pressure,
-            LinkedList nonPDepList, LinkedList pDepList, LinkedHashSet nonpdep_from_seed) {
+            LinkedList nonPDepList, LinkedList pDepList) {
 
         CoreEdgeReactionModel cerm = (CoreEdgeReactionModel) p_reactionModel;
-
-        for (Iterator iter = PDepNetwork.getCoreReactions(cerm).iterator(); iter.hasNext();) {
-            PDepReaction rxn = (PDepReaction) iter.next();
-            if (cerm.categorizeReaction(rxn) != 1) {
-                continue;
-            }
-            //check if this reaction is not already in the list and also check if this reaction has a reverse reaction
-            // which is already present in the list.
-            if (rxn.getReverseReaction() == null) {
-                rxn.generateReverseReaction();
-            }
-
-            if (!rxn.reactantEqualsProduct() && !troeList.contains(rxn) && !troeList.contains(rxn.getReverseReaction()) &&
-                    !thirdBodyList.contains(rxn) && !thirdBodyList.contains(rxn.getReverseReaction()) &&
-                    !lindemannList.contains(rxn) && !lindemannList.contains(rxn.getReverseReaction()) &&
-                    !nonpdep_from_seed.contains(rxn) && !nonpdep_from_seed.contains(rxn.getReverseReaction())) {
-                if (!pDepList.contains(rxn) && !pDepList.contains(rxn.getReverseReaction())) {
-                    pDepList.add(rxn);
-                } else if (pDepList.contains(rxn) && !pDepList.contains(rxn.getReverseReaction())) {
-                    continue;
-                } else if (!pDepList.contains(rxn) && pDepList.contains(rxn.getReverseReaction())) {
-                    Temperature T = new Temperature(298, "K");
-                    if (rxn.calculateKeq(T) > 0.999) {
-                        pDepList.remove(rxn.getReverseReaction());
-                        pDepList.add(rxn);
-                    }
-                }
-
-            }
-        }
+        LinkedHashSet seedList = new LinkedHashSet();
+        if (cerm.getSeedMechanism() != null)
+		seedList = cerm.getSeedMechanism().getReactionSet();
 
         for (Iterator iter = p_reactionModel.getReactionSet().iterator(); iter.hasNext();) {
             Reaction r = (Reaction) iter.next();
@@ -301,6 +273,65 @@ public abstract class JDAS implements DAESolver {
                 nonPDepList.add(r);
             }
         }
+
+        for (Iterator iter = PDepNetwork.getCoreReactions(cerm).iterator(); iter.hasNext();) {
+            PDepReaction rxn = (PDepReaction) iter.next();
+            if (cerm.categorizeReaction(rxn) != 1) {
+                continue;
+            }
+
+            if (rxn.getReverseReaction() == null) {
+                rxn.generateReverseReaction();
+            }
+			Reaction reverse = rxn.getReverseReaction();
+			
+            // check if this reaction is already in the list and also
+            //  check if this reaction has a reverse reaction which is already present in the list.
+            if (rxn.reactantEqualsProduct()) continue;
+			if (troeList.contains(rxn) || troeList.contains(reverse)) {
+				//Logger.debug(String.format("Excluding FAME-estimated PDep rate for %s from ODEs because its Troe rate is in a reaction library or seed mechanism.",rxn));
+				continue; // exclude rxns already in seed mechanism
+			}
+			else if (thirdBodyList.contains(rxn) || thirdBodyList.contains(reverse)) {
+				//Logger.debug(String.format("Excluding FAME-estimated PDep rate for %s from ODEs because its 3-body rate is in a reaction library or seed mechanism.",rxn));
+				continue; // exclude rxns already in seed mechanism
+			}
+			else if (lindemannList.contains(rxn) || lindemannList.contains(reverse)) {
+				//Logger.debug(String.format("Excluding FAME-estimated PDep rate for %s from ODEs because its Lindemann rate is in a reaction library or seed mechanism.",rxn));
+				continue; // exclude rxns already in seed mechanism
+			}
+			else if (seedList.contains(rxn) || seedList.contains(reverse)) {
+				//Logger.debug(String.format("Excluding FAME-estimated PDep rate for %s from ODEs because it's in the seed mechanism",rxn));
+				continue; // exclude rxns already in seed mechanism
+			}
+                        /*
+                         * This elseif statement exists to catch pressure-dependent reactions
+                         * that were supplied to a Reaction Library in the reactions.txt file
+                         * (e.g. the pdep kinetics were fit to a particular pressure, OR
+                         * H+O2=O+OH).  We want the Reaction Library's value to override
+                         * the FAME-estimated pdep kinetics.
+                         */
+                        else if (nonPDepList.contains(rxn) || nonPDepList.contains(reverse)) {
+                                //Logger.debug(String.format("Excluding FAME-estimated PDep rate for %s from ODEs because it's in the reaction mechanism",rxn));
+				continue; // exclude rxns already in mechanism
+                        }
+			else {
+				//Logger.debug(String.format("Including FAME-estimated PDep rate for  %s in ODEs because it's not in the seed mechanism, nor does it have a P-dep rate from a reaction library.",rxn));
+			}
+            if (!pDepList.contains(rxn) && !pDepList.contains(reverse)) {
+                pDepList.add(rxn);
+            } else if (pDepList.contains(rxn) && !pDepList.contains(reverse)) {
+                continue;
+            } else if (!pDepList.contains(rxn) && pDepList.contains(reverse)) {
+                Temperature T = new Temperature(298, "K");
+                if (rxn.calculateKeq(T) > 0.999) {
+                    pDepList.remove(reverse);
+                    pDepList.add(rxn);
+                }
+            }
+        }
+
+
 
         duplicates.clear();
 
@@ -318,7 +349,7 @@ public abstract class JDAS implements DAESolver {
         }
 
         LinkedHashMap speStatus = new LinkedHashMap();
-        System.out.println("Sp.#\tName         \tConcentration \tFlux");
+        Logger.info(String.format("%-8s%-16s %-16s       %-16s", "Sp. #", "Name", "Concentration", "Flux"));
 
         for (Iterator iter = p_reactionModel.getSpecies(); iter.hasNext();) {
             Species spe = (Species) iter.next();
@@ -328,7 +359,7 @@ public abstract class JDAS implements DAESolver {
             }
             double conc = p_y[id - 1];
             double flux = p_yprime[id - 1];
-            System.out.println(String.format("%1$4d\t%2$-13s\t%3$ 6E \t%4$ 6E", spe.getID(), spe.getFullName(), conc, flux));
+            Logger.info(String.format("%1$4d    %2$-13s      %3$ 10.4E   %4$ 10.4E", spe.getID(), spe.getFullName(), conc, flux));
 
             if (conc < 0) {
                 double aTol = ReactionModelGenerator.getAtol();
@@ -620,7 +651,7 @@ public abstract class JDAS implements DAESolver {
         if (p_reaction instanceof PDepReaction) {
             double rate = ((PDepReaction) p_reaction).calculateRate(p_temperature, p_pressure);
             if (String.valueOf(rate).equals("NaN")) {
-                System.err.println(p_reaction.toChemkinString(p_temperature) + "Has bad rate probably due to Ea<DH");
+                Logger.error(p_reaction.toChemkinString(p_temperature) + "Has bad rate probably due to Ea<DH");
                 rate = 0;
             }
             ODEReaction or = new ODEReaction(rnum, pnum, rid, pid, rate);
@@ -630,8 +661,6 @@ public abstract class JDAS implements DAESolver {
             double rate = 0;
             if (p_reaction instanceof TemplateReaction) {
                 //startTime = System.currentTimeMillis();
-                //rate = ((TemplateReaction)p_reaction).getRateConstant();
-
                 rate = ((TemplateReaction) p_reaction).calculateTotalRate(p_beginStatus.temperature);
                 ODEReaction or = new ODEReaction(rnum, pnum, rid, pid, rate);
                 //Global.transferReaction = Global.transferReaction + (System.currentTimeMillis() - startTime)/1000/60;
@@ -722,13 +751,11 @@ public abstract class JDAS implements DAESolver {
                 rate = p_reaction.calculateTotalRate(p_beginStatus.temperature);
 
                 double inertColliderEfficiency = ((ThirdBodyReaction) p_reaction).calculateThirdBodyCoefficientForInerts(p_beginStatus);
-                //rate = p_reaction.getRateConstant();
                 ThirdBodyODEReaction or = new ThirdBodyODEReaction(rnum, pnum, rid, pid, rate, colliders, efficiency, numCollider, inertColliderEfficiency);
                 return or;
             } else {
                 rate = p_reaction.calculateTotalRate(p_beginStatus.temperature);
                 //startTime = System.currentTimeMillis();
-                //rate = p_reaction.getRateConstant();
                 ODEReaction or = new ODEReaction(rnum, pnum, rid, pid, rate);
                 //Global.transferReaction = Global.transferReaction + (System.currentTimeMillis() - startTime)/1000/60;
 
@@ -764,11 +791,11 @@ public abstract class JDAS implements DAESolver {
         // Find the rate coefficient
         double k;
         if (r instanceof TemplateReaction) {
-            k = ((TemplateReaction) r).getRateConstant(temperature, pressure);
+            k = ((TemplateReaction) r).calculateTotalPDepRate(temperature, pressure);
         } else if (r instanceof PDepReaction) {
             k = ((PDepReaction) r).calculateRate(temperature, pressure);
         } else {
-            k = r.getRateConstant(temperature);
+            k = r.calculateTotalRate(temperature);
         }
 
         if (k > 0) {
@@ -1154,8 +1181,8 @@ public abstract class JDAS implements DAESolver {
             }
             edgeSpeciesCounter = edgeID.size() + edgeLeakID.size();//this line is not needed here, but it is included for consistency with the first pass
         } catch (IOException e) {
-            System.err.println("Problem writing Solver Input File!");
-            e.printStackTrace();
+            Logger.error("Problem writing Solver Input File!");
+            Logger.logStackTrace(e);
         }
 
 
@@ -1223,8 +1250,8 @@ public abstract class JDAS implements DAESolver {
                 bw.write("0 \n"); // for liquid EOS or constant volume this should be 1
             }
         } catch (IOException e) {
-            System.err.println("Problem writing Solver Input File!");
-            e.printStackTrace();
+            Logger.error("Problem writing Solver Input File!");
+            Logger.logStackTrace(e);
         }
 
     }
@@ -1247,8 +1274,8 @@ public abstract class JDAS implements DAESolver {
             //                fw.write(outputString.toString());
             //                fw.close();
         } catch (IOException e) {
-            System.err.println("Problem creating Solver Input File!");
-            e.printStackTrace();
+            Logger.error("Problem creating Solver Input File!");
+            Logger.logStackTrace(e);
         }
     }
 }

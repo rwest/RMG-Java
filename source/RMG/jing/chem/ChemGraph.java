@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -39,6 +39,7 @@ import jing.chemUtil.Node;
 import jing.chemUtil.Graph;
 import jing.param.Global;
 import jing.param.Temperature;
+import jing.rxnSys.Logger;
 import jing.rxnSys.ReactionModelGenerator;
 
 //## package jing::chem
@@ -58,7 +59,6 @@ public class ChemGraph implements Matchable {
     Maximal radical number allowed in a ChemGraph.
     */
     protected static int MAX_RADICAL_NUM = 10;		//## attribute MAX_RADICAL_NUM
-    
     protected static int MAX_SILICON_NUM = 10;
     protected static int MAX_SULFUR_NUM = 10;
     
@@ -112,6 +112,9 @@ public class ChemGraph implements Matchable {
     protected boolean isAromatic = false;
     protected String InChI;
     protected String InChIKey;
+
+    protected String thermoComments = "";
+    protected String freqComments = "";
     // Constructors
 
     private  ChemGraph() {
@@ -123,9 +126,18 @@ public class ChemGraph implements Matchable {
 
         if (isForbiddenStructure(p_graph,getRadicalNumber(),getOxygenNumber(),getCarbonNumber()) || getRadicalNumber() > MAX_RADICAL_NUM || getOxygenNumber() > MAX_OXYGEN_NUM || getCycleNumber() > MAX_CYCLE_NUM) {
 		//if (getRadicalNumber() > MAX_RADICAL_NUM || getOxygenNumber() > MAX_OXYGEN_NUM || getCycleNumber() > MAX_CYCLE_NUM) {		        
-			String message = p_graph.toString() + " is forbidden by "+whichForbiddenStructures(p_graph, getRadicalNumber(), getOxygenNumber(), getCycleNumber()) +"and not allowed.";
-			graph = null;
-        	throw new ForbiddenStructureException(message);
+			String message = "The molecular structure\n"+ p_graph.toString() + " is forbidden by "+whichForbiddenStructures(p_graph, getRadicalNumber(), getOxygenNumber(), getCycleNumber()) +"and not allowed.";
+			
+			ThermoData themo_from_library = GATP.getINSTANCE().primaryLibrary.getThermoData(getGraph());
+			if ( themo_from_library != null) {
+				Logger.warning(message);
+				Logger.warning(String.format("But it's in the %s, so it will be allowed anyway.\n",themo_from_library.getSource() ));
+				// nb. the source String begins "Primary Thermo Library:"
+			}
+			else{
+				graph = null;
+				throw new ForbiddenStructureException(message);
+			}
         }
     }
 
@@ -247,7 +259,8 @@ public class ChemGraph implements Matchable {
                result = ChemGraph.copy(p_chemGraph);
        }
        catch (Exception e) {
-               System.out.println(e.getMessage());
+		   Logger.logStackTrace(e);
+		   Logger.critical(e.getMessage());
                System.exit(0);
        }
 
@@ -494,7 +507,7 @@ public class ChemGraph implements Matchable {
         Iterator neighbor_iter = p_node.getNeighbor();
         FGElement fge = (FGElement)p_node.getFgElement();
 	if(atom.isRadical()){
-	    System.out.println("Error: calculateRotorFragmentSymmetryNumber() does not support radical sites");
+	    Logger.critical("calculateRotorFragmentSymmetryNumber() does not support radical sites");
 	    System.exit(0);
 	}
         // if no neighbor or only one neighbor, sigma = 1, return 1;
@@ -956,7 +969,7 @@ return sn;
 				    rotorInfo.put(rotorAtoms, sideB.getNodeIDs());
 				}
 				else{
-				    System.out.println("Error in getInternalRotorInformation(): Cannot find node "+ n2.getID()+" after splitting from "+ n1.getID() +" in the following graph:\n"+ g.toString());
+				    Logger.critical("Error in getInternalRotorInformation(): Cannot find node "+ n2.getID()+" after splitting from "+ n1.getID() +" in the following graph:\n"+ g.toString());
 				    System.exit(0);
 				}
         		}
@@ -1189,6 +1202,7 @@ return sn;
         //	Hardcoding Si and S into RMG-java
         int Si_number = 0;
         int S_number = 0;
+        int Cl_number = 0;
 
         Iterator iter = getNodeList();
         while (iter.hasNext()) {
@@ -1213,6 +1227,9 @@ return sn;
         	else if (atom.isSulfur()) {
         		S_number++;
         	}
+                else if (atom.isChlorine()) {
+                    Cl_number++;
+                }
         	else {
         		throw new InvalidChemNodeElementException();
         	}
@@ -1306,7 +1323,7 @@ return sn;
 			throw e;
 		}
         catch (Exception e) {
-		e.printStackTrace();
+			Logger.logStackTrace(e);
         	throw new FailGenerateThermoDataException();
         }
         //#]
@@ -1327,6 +1344,7 @@ return sn;
         	return solvthermoData;
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
         	throw new FailGenerateThermoDataException();
         }
     }
@@ -1339,6 +1357,7 @@ return sn;
         	return abramData;
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
         	throw new FailGenerateThermoDataException();
         }
     }
@@ -1350,6 +1369,7 @@ return sn;
         	return unifacData;
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
         	throw new FailGenerateThermoDataException();
         }
     }
@@ -1779,6 +1799,19 @@ return sn;
         return sNum;
     }
 
+    public int getChlorineNumber() {
+        int ClNum = 0;
+        Iterator iter = getNodeList();
+        while (iter.hasNext()) {
+        	Node node = (Node)iter.next();
+        	Atom atom = (Atom)node.getElement();
+        	if (atom.isChlorine()) {
+        		ClNum++;
+        	}
+        }
+        return ClNum;
+    }
+
     //## operation getSymmetryNumber()
     public int getSymmetryNumber() {
         //#[ operation getSymmetryNumber()
@@ -1835,32 +1868,31 @@ return sn;
 
     /**
 	 Added by: Amrit Jalan
-	 Effects: calculate the raduis of the chemGraph using UNIFAC Ri values. (UNITSof radius = m)
+	 Effects: calculate the raduis of the chemGraph using Abraham V values. (UNITS of radius = m)
 	 */
     public double getRadius() {
 		
         double ri;
-		
         if (getCarbonNumber() == 0 && getOxygenNumber() == 0){    // Which means we ar dealing with HJ or H2
 			double ri3;
-			ri3 = 21*8.867/88;                              // 8.867 Ang^3 is the volume of a single Hydrogen Atom
+			ri3 = 8.867 / 4.1887902;                            // 8.867 Ang^3 is the volume of a single Hydrogen Atom. 4.1887902 is 4pi/3
             if (getHydrogenNumber() == 1){                        // i.e. we are dealing with the Hydrogen radical
-                ri = Math.pow(ri3,0.333) * Math.pow(10,-10);
+                ri = Math.pow(ri3,0.333333) * 1.0e-10;
                 return ri;
             }
             if (getHydrogenNumber() == 2){                        // i.e. we are dealing with the Hydrogen molecule
                 ri3 = 2*ri3;                                      // Assumption: volume of H2 molecule ~ 2 * Volume of H atom
-                ri = Math.pow(ri3,0.333) * Math.pow(10,-10);
+                ri = Math.pow(ri3,0.333333) * 1.0e-10;
                 return ri;                
             }
         }
 		
         double solute_V = getAbramData().V;  //Units: cm3/100/mol
-        double volume = solute_V*100/6.023/1e23; //Units: cm3/molecule
-        double ri3 = volume*21/88;       // Units: cm3
-        ri = Math.pow(ri3,0.333)*0.01;   //Returns the solute radius in 'm'
+        double volume = solute_V * 100 / 6.023e23; //Units: cm3/molecule
+        double ri3 = volume / 4.1887902 ;       // Units: cm3   (4.1887902 is 4pi/3)
+        ri = Math.pow(ri3,0.333333)*0.01;   //Returns the solute radius in 'm'
 //        double Ri=getUnifacData().R;
-//        ri=3.18*Math.pow(Ri,0.333)*Math.pow(10,-10);   // From Koojiman Ind. Eng. Chem. Res 2002, 41 3326-3328
+//        ri=3.18*Math.pow(Ri,0.333333)*1.0e-10;   // From Koojiman Ind. Eng. Chem. Res 2002, 41 3326-3328
         return ri;
 		
     }
@@ -1871,7 +1903,7 @@ return sn;
 	 */
     public double getDiffusivity() {
 		double speRad=getRadius();
-		        
+		
         Temperature sysTemp = ReactionModelGenerator.getTemp4BestKinetics();
         //double solventViscosity = 9.65e-6 * Math.exp((811.75/sysTemp.getK()+(346920/sysTemp.getK()/sysTemp.getK())));  //Viscosity of octanol at a function of temperature. Obtained from Matsuo and Makita (INTERNATIONAL JOURNAL OF THERMOPHYSICSVolume 10, Number 4, 833-843, DOI: 10.1007/BF00514479)
 		//double solventViscosity = 0.136*Math.pow(10,-3);  //Viscosity of liquid decane
@@ -1881,8 +1913,8 @@ return sn;
         //double solventViscosity = 0.404*Math.pow(10,-3);   //Viscosity of water at 343 K
 
         double solventViscosity = ReactionModelGenerator.getViscosity();
-        double denom = 132*solventViscosity*speRad/7;
-		double diffusivity = 1.381*sysTemp.getK()* Math.pow(10,-23)/denom;  //sysTemp.getK()
+        double denom = 132 * solventViscosity * speRad / 7;
+		double diffusivity = 1.381 * sysTemp.getK() * 1.0e-23 / denom;  //sysTemp.getK()
 		return diffusivity;
     }
     
@@ -2276,7 +2308,6 @@ return sn;
 			
 			ChemGraph cg  = null;
 			if (cg == null){
-				try {
 		        	cg = new ChemGraph(p_graph);
 					if (!hasHydrogen)
 						cg.addMissingHydrogen();
@@ -2291,11 +2322,6 @@ return sn;
 		        	}
 					//cgd.putSpecies(cg);
 		        }
-		        catch (ForbiddenStructureException e) {
-		        	throw new ForbiddenStructureException(e.getMessage());
-		        }
-			}
-			
 			return cg;
 
 	        //#]
@@ -2308,8 +2334,6 @@ return sn;
 			//ChemGraphDictionary cgd = ChemGraphDictionary.getInstance();
 			ChemGraph cg  = null;//= cgd.getChemGraphFromGraph(p_graph);
 			if (cg == null){
-				try {
-					
 		        	cg = new ChemGraph(p_graph);
 					cg.addMissingHydrogen();
 
@@ -2321,10 +2345,6 @@ return sn;
 		        		throw new InvalidChemGraphException();
 		        	}
 					//cgd.putSpecies(cg);
-		        }
-		        catch (ForbiddenStructureException e) {
-		        	throw new ForbiddenStructureException(e.getMessage());
-		        }
 			}
 			
 			return cg;
@@ -2348,8 +2368,8 @@ return sn;
         try {
         	String forbiddenStructureFile = System.getProperty("jing.chem.ChemGraph.forbiddenStructureFile");
         	if (forbiddenStructureFile == null) {
-        		System.out.println("undefined system property: jing.chem.ChemGraph.forbiddenStructureFile!");
-        		System.out.println("No forbidden structure file defined!");
+        		Logger.error("Undefined system property: jing.chem.ChemGraph.forbiddenStructureFile!");
+        		Logger.error("No forbidden structure file defined!");
 				throw new IOException("Undefined system property: jing.chem.ChemGraph.forbiddenStructureFile");
         		//return;
         	}
@@ -2382,6 +2402,7 @@ return sn;
         	return;
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
         	throw new IOException(e.getMessage());
         }
 
@@ -2743,6 +2764,9 @@ return sn;
     	MAX_HEAVYATOM_NUM = maxHANumber;
     }
     
+    public static void setMaxCycleNumber(int maxCycleNumber) {
+    	MAX_CYCLE_NUM = maxCycleNumber;
+    }
     public int getHeavyAtomNumber() {
     	return getCarbonNumber() + getOxygenNumber() + getSulfurNumber() + getSiliconNumber();
     }
@@ -2753,6 +2777,22 @@ return sn;
     
     public static String getRepOkString() {
     	return repOkString;
+    }
+
+    public void appendThermoComments(String newComment) {
+        thermoComments += newComment + "\t";
+    }
+
+    public String getThermoComments() {
+        return thermoComments;
+    }
+
+    public void appendFreqComments(String newComment) {
+        freqComments += newComment + "\t";
+    }
+
+    public String getFreqComments() {
+        return freqComments;
     }
 }
 /*********************************************************************

@@ -1,12 +1,35 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+////////////////////////////////////////////////////////////////////////////////
+//
+//	RMG - Reaction Mechanism Generator
+//
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
+//	RMG Team (rmg_dev@mit.edu)
+//
+//	Permission is hereby granted, free of charge, to any person obtaining a
+//	copy of this software and associated documentation files (the "Software"),
+//	to deal in the Software without restriction, including without limitation
+//	the rights to use, copy, modify, merge, publish, distribute, sublicense,
+//	and/or sell copies of the Software, and to permit persons to whom the
+//	Software is furnished to do so, subject to the following conditions:
+//
+//	The above copyright notice and this permission notice shall be included in
+//	all copies or substantial portions of the Software.
+//
+//	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//	FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+//	DEALINGS IN THE SOFTWARE.
+//
+////////////////////////////////////////////////////////////////////////////////
 
 package jing.rxn;
 
 import jing.param.Pressure;
 import jing.param.Temperature;
+import jing.rxnSys.Logger;
 
 /**
  * A model of pressure-dependent reaction kinetics k(T, P) of the form
@@ -23,14 +46,14 @@ public class PDepArrheniusKinetics implements PDepKinetics {
 	/**
 	 * The list of pressures at which we have Arrhenius parameters.
 	 */
-	public static Pressure[] pressures;
+	public Pressure[] pressures;
 
 	/**
 	 * The list of Arrhenius kinetics fitted at each pressure.
 	 */
 	private ArrheniusKinetics[] kinetics;
 	
-	protected static int numPressures = 0;
+	protected int numPressures = 0;
 
 	public PDepArrheniusKinetics(int numP) {
 		pressures = new Pressure[numP];
@@ -40,7 +63,7 @@ public class PDepArrheniusKinetics implements PDepKinetics {
 	
 	public void setKinetics(int index, Pressure P, ArrheniusKinetics kin) {
 		if (index < 0 || index >= pressures.length)
-			return;
+			throw new RuntimeException(String.format("Cannot set kinetics with index %s because array is only of size %s",index,pressures.length));
 		pressures[index] = P;
 		kinetics[index] = kin;
 	}
@@ -56,35 +79,60 @@ public class PDepArrheniusKinetics implements PDepKinetics {
 
 		for (int i = 0; i < pressures.length - 1; i++) {
 			if (pressures[i].getBar() <= P.getBar() && P.getBar() <= pressures[i+1].getBar()) {
-				index1 = i; index2 = i + 1;
+				index1 = i;
+				index2 = i + 1;
+				break;
 			}
 		}
-
-		if (index1 < 0 || index2 < 0)
-			return 0.0;
+		
+		/* Chemkin 4 theory manual specifies:
+			"If the rate of the reaction is desired for a pressure lower than
+		 	 any of those provided, the rate parameters provided for the lowest
+			 pressure are used. Likewise, if rate of the reaction is desired for
+			 a pressure higher than any of those provided, the rate parameters
+			 provided for the highest pressure are used."
+		 We take the same approach here, but warn the user (so they can fix their input file).
+		*/
+		 
+		if (P.getPa() < pressures[0].getPa())
+		{
+			Logger.warning(String.format("Tried to evaluate rate coefficient at P=%.3g Atm, which is below minimum for this PLOG rate.",P.getAtm()));
+			Logger.warning(String.format("Using rate for minimum %s Atm instead", pressures[0].getAtm() ));
+			return kinetics[0].calculateRate(T);
+		}
+		if (P.getPa() > pressures[pressures.length-1].getPa())
+		{
+			Logger.warning(String.format("Tried to evaluate rate coefficient at P=%.3g Atm, which is above maximum for this PLOG rate.",P.getAtm()));
+			Logger.warning(String.format("Using rate for maximum %s Atm instead", pressures[pressures.length-1].getAtm() ));
+			return kinetics[pressures.length-1].calculateRate(T);
+		}
 
 		double logk1 = Math.log10(kinetics[index1].calculateRate(T));
 		double logk2 = Math.log10(kinetics[index2].calculateRate(T));
 		double logP0 = Math.log10(P.getBar());
 		double logP1 = Math.log10(pressures[index1].getBar());
 		double logP2 = Math.log10(pressures[index2].getBar());
+		
+		// We can't take logarithms of k=0 and get meaningful interpolation, so we have to do something weird.
+		// The approach used here is arbitrary, but at least it gives a continuous k(P) function.
+		// 
+		// If interpolating between k1=0 and k2=0, return k=0
+		if (logk1 == Double.NEGATIVE_INFINITY && logk2 == Double.NEGATIVE_INFINITY)
+			return 0.0;
+		// if interpolating between k1=0 and k2>0, set k1 to something small but nonzero.
+		else if (logk1 == Double.NEGATIVE_INFINITY)
+			logk1 = Math.min(0, logk2-1); // k1 is a small 1 cm3/mol/sec, or k2/10 if that's even smaller.
+		// if interpolating between k1>0 and k2=0, set k2 to something small but nonzero.
+		else if (logk2 == Double.NEGATIVE_INFINITY)
+			logk2 = Math.min(0, logk1-1); // k2 is a small 1 cm3/mol/sec, or k1/10 if that's even smaller.
 
 		double logk0 = logk1 + (logk2 - logk1) / (logP2 - logP1) * (logP0 - logP1);
-
 		return Math.pow(10, logk0);
 	}
 
     public String toChemkinString() {
         String result = "";
 		for (int i = 0; i < pressures.length; i++) {
-			result += "PLOG / " + Double.toString(pressures[i].getAtm());
-//			result += " / " + Double.toString(kinetics[i].getAValue());
-//			result += " / " + Double.toString(kinetics[i].getNValue());
-//			result += " / " + Double.toString(kinetics[i].getEValue());
-			// 6Jul2009-MRH:
-			//	PLOG format does not need "/" between parameters
-			result += " " + Double.toString(kinetics[i].getAValue());
-			result += " " + Double.toString(kinetics[i].getNValue());
 			double Ea_in_kcalmol = kinetics[i].getEValue();
 			double Ea = 0.0;
 			if (ArrheniusKinetics.getEaUnits().equals("kcal/mol"))		Ea = Ea_in_kcalmol;
@@ -92,17 +140,20 @@ public class PDepArrheniusKinetics implements PDepKinetics {
 			else if (ArrheniusKinetics.getEaUnits().equals("kJ/mol"))	Ea = Ea_in_kcalmol * 4.184;
 			else if (ArrheniusKinetics.getEaUnits().equals("J/mol"))	Ea = Ea_in_kcalmol * 4184.0;
 			else if (ArrheniusKinetics.getEaUnits().equals("Kelvins"))	Ea = Ea_in_kcalmol / 1.987e-3;
-			result += " " + Double.toString(Ea);
-			result += " /\n";
+			result += String.format("PLOG / %10s    %10.2e  %10s  %10s /\n",
+									pressures[i].getAtm(),
+									kinetics[i].getAValue(),
+									kinetics[i].getNValue(),
+									Ea);
 		}
 		return result;
     }
     
-    public static void setNumPressures(int numP) {
-    	if (numP > getNumPressures()) numPressures = numP;
+    public void setNumPressures(int numP) {
+    	numPressures = numP;
     }
     
-    public static int getNumPressures() {
+    public int getNumPressures() {
     	return numPressures;
     }
     
@@ -110,7 +161,7 @@ public class PDepArrheniusKinetics implements PDepKinetics {
     	return kinetics[i];
     }
     
-    public static void setPressures(Pressure[] ListOfPressures) {
+    public void setPressures(Pressure[] ListOfPressures) {
     	pressures = ListOfPressures;
     }
     
@@ -118,7 +169,7 @@ public class PDepArrheniusKinetics implements PDepKinetics {
     	kinetics = ListOfKinetics;
     }
     
-    public Pressure getPressures(int i) {
+    public Pressure getPressure(int i) {
     	return pressures[i];
     }
 

@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -42,6 +42,7 @@ import jing.chemUtil.*;
 import jing.chemParser.*;
 import jing.chem.Species;
 import jing.chem.ChemGraph;
+import jing.rxnSys.Logger;
 
 //## package jing::rxn 
 
@@ -71,7 +72,7 @@ public class ReactionTemplate {
   
   //protected HashMap reactionDictionaryByReactant = new HashMap();		//## attribute reactionDictionaryByReactant 
   
-  protected LinkedHashMap reactionDictionaryByStructure = new LinkedHashMap();		//## attribute reactionDictionaryByStructure 
+  protected WeakHashMap reactionDictionaryByStructure = new WeakHashMap();		//## attribute reactionDictionaryByStructure 
   
   protected KineticsTemplateLibrary kineticsTemplateLibrary;
   protected ReactionAdjList reactionAdjList;
@@ -114,9 +115,13 @@ public class ReactionTemplate {
       //#]
   }
 
-  public void removeFromReactionDictionaryByStructure(Structure s) {
-      if(reactionDictionaryByStructure.containsKey(s)) reactionDictionaryByStructure.remove(s);
-      return;
+  public boolean removeFromReactionDictionaryByStructure(Structure s) {
+	  // Returns true if it found and removed the structure.
+      if(reactionDictionaryByStructure.remove(s) == null)
+		  return false;
+		//Logger.warning(String.format("ReactionTemplate %s Dictionary did not contain reaction structure %s",name,s));
+		//throw new RuntimeException(String.format("ReactionTemplate %s Dictionary did not contain reaction structure %s",name,s));
+	  else return true;
   }
   
   //## operation calculateDepth(HashSet) 
@@ -573,7 +578,7 @@ public class ReactionTemplate {
 			  LinkedList products_asdefinedinPRL = rxn.getProductList();
 			  if (Structure.isSpeciesListEquivalentToChemGraphListAsChemGraphs(products_asdefinedinPRL,products_asdefinedbyRMG)) {
 				  if (rxn instanceof ThirdBodyReaction || rxn instanceof TROEReaction || rxn instanceof LindemannReaction)
-					  System.out.println("RMG is only utilizing the high-pressure limit parameters for PKL reaction: " + rxn.toString());
+					  Logger.info("RMG is only utilizing the high-pressure limit parameters for PKL reaction: " + rxn.toString());
 				  return rxn.getKinetics();
 			  }
 		  }
@@ -596,7 +601,7 @@ public class ReactionTemplate {
 			  LinkedList products = rxn.getProductList();
 			  if (Structure.isSpeciesListEquivalentToChemGraphListAsChemGraphs(products,p_products)) {
 				  if (rxn instanceof ThirdBodyReaction || rxn instanceof TROEReaction || rxn instanceof LindemannReaction)
-					  System.out.println("RMG is only utilizing the high-pressure limit parameters for PKL reaction: " + rxn.toString());
+					  Logger.info("RMG is only utilizing the high-pressure limit parameters for PKL reaction: " + rxn.toString());
 				  return rxn.getStructure().direction;
 			  }
 		  }
@@ -901,10 +906,10 @@ public class ReactionTemplate {
 					}
 					else {
 						if (k == null)
-							old_reaction.addAdditionalKinetics(null,redundancy);
+							old_reaction.addAdditionalKinetics(null,redundancy,false);
 						else {
 							for (int i=0; i<k.length; i++) {
-								old_reaction.addAdditionalKinetics(k[i], redundancy);
+								old_reaction.addAdditionalKinetics(k[i], redundancy,false);
 							}
 						}
 						//old_reaction.getStructure().increaseRedundancy(redundancy);
@@ -1081,7 +1086,7 @@ public class ReactionTemplate {
 						else {
 							//p_structure.increaseRedundancy(redundancy);
 							for (int i=0; i<k.length; i++) {
-								reverseReaction.addAdditionalKinetics(k[i],redundancy);
+								reverseReaction.addAdditionalKinetics(k[i],redundancy,false);
 							}
 							//structure = null;
 						}
@@ -1189,13 +1194,13 @@ public class ReactionTemplate {
            	try {
       	     	LinkedList product = reactionAdjList.reactChemGraph(reactant);
 				LinkedList productSp = new LinkedList();
-//				SpeciesDictionary sd = SpeciesDictionary.getInstance();
 				for (int i=0; i< product.size(); i++){
 					String name = null;
-					if (((ChemGraph)product.get(i)).getSpecies() == null){
-						Species sp = Species.make(name, ((ChemGraph)product.get(i)));
-						productSp.add(sp);
+					Species sp = ((ChemGraph)product.get(i)).getSpecies();
+					if (sp == null){
+						sp = Species.make(name, ((ChemGraph)product.get(i))); // gets old one it if it already exists, and saves it in the chemgraph
 					}
+					productSp.add(sp);
 				}
 				double pt = System.currentTimeMillis();
       	        boolean rpsame = MathTool.isListEquivalent(reactantSp, productSp);
@@ -1216,10 +1221,10 @@ public class ReactionTemplate {
   					}
   					else {
   						if (k == null)
-  							old_reaction.addAdditionalKinetics(null,redundancy);
+  							old_reaction.addAdditionalKinetics(null,redundancy,false);
   						else {
 	  						for (int i=0; i<k.length; i++) {
-	  							old_reaction.addAdditionalKinetics(k[i], redundancy);
+	  							old_reaction.addAdditionalKinetics(k[i], redundancy,false);
 	  						}
   						}
 						//old_reaction.getStructure().increaseRedundancy(redundancy);
@@ -1271,7 +1276,7 @@ public class ReactionTemplate {
       }
       
       setName(p_reactionTemplateName);
-      System.out.println("Reading forwards template:   "+p_reactionTemplateName);
+      Logger.info("Reading forward template:   "+p_reactionTemplateName);
       
       String ReactionAdjListName = directoryName + "reactionAdjList.txt";
       String DictionaryName = directoryName + "dictionary.txt";
@@ -1287,12 +1292,13 @@ public class ReactionTemplate {
       	readLibrary(LibraryName);
       	fillKineticsBottomToTop();
       	if (reverseRTName != null && reverseRTName.compareToIgnoreCase("none")!=0) {
-      		System.out.println("Generating reverse template: "+reverseRTName);
+      		Logger.info("Generating reverse template: "+reverseRTName);
       		reverseReactionTemplate = generateReverseReactionTemplate(reverseRTName);
       		reverseReactionTemplate.forbiddenStructures = forbiddenStructures;
       	}
       }
       catch (Exception e) {
+		Logger.logStackTrace(e);
       	System.err.println("Error in read in reaction template: " + name);
       	System.err.println(e.getMessage());
       	System.exit(0);
@@ -1362,7 +1368,8 @@ public class ReactionTemplate {
       	return;
       }
       catch (Exception e) {
-    	  System.out.println("Failed to read forbiddenStructures file");
+		  Logger.logStackTrace(e);
+    	  Logger.error("Failed to read forbiddenStructures file");
       	//throw new IOException(e.getMessage());
       }
       
@@ -1391,7 +1398,7 @@ public class ReactionTemplate {
       		fgname = token.nextToken();
 			
 			if (fgname.toLowerCase().startsWith("others")) {
-				System.out.println("Skipping dictionary definition of group "+fgname+" because its begins with 'others' and that has special meaning.");
+				Logger.verbose("    Skipping dictionary definition of group "+fgname+" because its begins with 'others' and that has special meaning.");
 				// gobble up the rest
 				while (line!=null) {
 					line=ChemParser.readUncommentLine(data);
@@ -1443,6 +1450,7 @@ public class ReactionTemplate {
       	return;
       }
       catch (Exception e) {
+		Logger.logStackTrace(e);
       	throw new IOException(e.getMessage());
       }
   }
@@ -1506,6 +1514,7 @@ public class ReactionTemplate {
       
       }
       catch (Exception e) {
+		Logger.logStackTrace(e);
       	throw new IOException("Error reading rate library. The error message is:" + '\n' + e.getMessage());
       }
       //#]

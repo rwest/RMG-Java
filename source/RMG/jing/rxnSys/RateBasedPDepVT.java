@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -72,7 +72,7 @@ public class RateBasedPDepVT extends RateBasedVT {
         for (Iterator iter = cerm.getUnreactedSpeciesSet().iterator(); iter.hasNext(); ) {
 	    Species us = (Species) iter.next();
             if (leakFlux[us.getID()] > Rmin) {
-                System.out.println("Leak flux exceeded largest permitted flux for convergence (tolerance="+tolerance+"): " + Rmin);
+                Logger.info("Leak flux exceeded largest permitted flux for convergence (tolerance="+tolerance+"): " + Rmin);
                 return false;
             }
         }

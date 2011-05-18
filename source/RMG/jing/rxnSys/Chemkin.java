@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -106,9 +106,9 @@ public class Chemkin implements DAESolver {
 		  fin.close();
 		  fout.close();
 	  } catch (FileNotFoundException e) {
-		  e.printStackTrace();
+		  Logger.logStackTrace(e);
 	  } catch (IOException e){
-		e.printStackTrace();
+		Logger.logStackTrace(e);
 	  } 
   }
 
@@ -137,17 +137,18 @@ public  Chemkin() {
       		return;
       	}
       	else if (line.startsWith("WARNING...THERE IS AN ERROR IN THE LINKING FILE")) {
-      		System.out.println("Error in chemkin linking to reactor!");
+      		Logger.critical("Error in chemkin linking to reactor!");
       		System.exit(0);
       	}
       	else {
-      		System.out.println("Unknown message in chem.message!");
+      		Logger.critical("Unknown message in chem.message!");
       		System.exit(0);
       	}
        }
        catch (Exception e) {
-       	System.out.println("Can't read chem.message!");
-       	System.out.println(e.getMessage());
+		Logger.logStackTrace(e);
+       	Logger.critical("Can't read chem.message!");
+       	Logger.critical(e.getMessage());
        	System.exit(0);
        }
 
@@ -173,7 +174,7 @@ public  Chemkin() {
       	double conc = ((Double)p_speciesConc.get(i)).doubleValue();
       	double flux = ((Double)p_speciesFlux.get(i)).doubleValue();
 
-      	System.out.println(String.valueOf(spe.getID()) + '\t' + spe.getFullName() + '\t' + String.valueOf(conc) + '\t' + String.valueOf(flux));
+      	Logger.info(String.valueOf(spe.getID()) + '\t' + spe.getFullName() + '\t' + String.valueOf(conc) + '\t' + String.valueOf(flux));
 
       	if (conc < 0) {
 			double aTol = ReactionModelGenerator.getAtol();
@@ -245,8 +246,8 @@ public  Chemkin() {
       	String returnmessage = returnmessageText.toString();
 	returnmessage=returnmessage.trim();
       	if (!returnmessage.contains("SUCCESSFULLY COMPLETED RUN.")) {
-      		System.out.println("External reactor model failed!");
-      		System.out.println("Reactor model error message: " + returnmessage);
+      		Logger.critical("External reactor model failed!");
+      		Logger.critical("Reactor model error message: " + returnmessage);
       		System.exit(0);
       	}
 
@@ -344,7 +345,8 @@ public  Chemkin() {
       	return ss;
       }
       catch (Exception e) {
-      	System.out.println("Error reading reactor model output: " + e.getMessage());
+		Logger.logStackTrace(e);
+      	Logger.critical("Error reading reactor model output: " + e.getMessage());
       	System.exit(0);
       	return null;
 
@@ -374,10 +376,14 @@ public  Chemkin() {
           	//System.out.println(line);
           }
           int exitValue = chemkin.waitFor();
+	  chemkin.getErrorStream().close();
+	  chemkin.getOutputStream().close();
+	  ips.close();
       }
       catch (Exception e) {
-      	System.out.println("Error in running chemkin!");
-      	System.out.println(e.getMessage());
+		Logger.logStackTrace(e);
+      	Logger.critical("Error in running chemkin!");
+      	Logger.critical(e.getMessage());
       	System.exit(0);
       }
 
@@ -404,10 +410,14 @@ public  Chemkin() {
           	//System.out.println(line);
           }
           int exitValue = reactor.waitFor();
+	  reactor.getErrorStream().close();
+	  reactor.getOutputStream().close();
+	  ips.close();
       }
       catch (Exception e) {
-      	System.out.println("Error in running reactor!");
-      	System.out.println(e.getMessage());
+		Logger.logStackTrace(e);
+      	Logger.critical("Error in running reactor!");
+      	Logger.critical(e.getMessage());
       	System.exit(0);
       }
 
@@ -415,15 +425,15 @@ public  Chemkin() {
   }
 
   //## operation solve(boolean,ReactionModel,boolean,SystemSnapshot,ReactionTime,ReactionTime,boolean)
-  public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, final ReactionTime p_beginTime, ReactionTime p_endTime, boolean p_conditionChanged, LinkedHashSet nonpdep_from_seed) {
+  public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, final ReactionTime p_beginTime, ReactionTime p_endTime, boolean p_conditionChanged) {
       //#[ operation solve(boolean,ReactionModel,boolean,SystemSnapshot,ReactionTime,ReactionTime,boolean)
-      writeChemkinInputFile(p_reactionModel, p_beginStatus, nonpdep_from_seed);
+      writeChemkinInputFile(p_reactionModel, p_beginStatus);
       runChemkin();
       checkChemkinMessage();
 
       writeReactorInputFile(p_reactionModel,p_beginTime, p_endTime, p_beginStatus);
       runReactor();
-      System.out.println("After ODE: from " + p_beginTime + " to " + p_endTime);
+      Logger.info("After ODE: from " + p_beginTime + " to " + p_endTime);
       SystemSnapshot result = readReactorOutputFile(p_reactionModel);
       return result;
       //#]
@@ -456,12 +466,12 @@ public  Chemkin() {
   //## operation writeChemkinElement()
   public static  String writeChemkinElement() {
       //#[ operation writeChemkinElement()
-      return "ELEMENTS H C O N Ne Ar He Si S END\n";
+      return "ELEMENTS H C O N Ne Ar He Si S Cl END\n";
       //#]
   }
 
   //## operation writeChemkinInputFile(ReactionModel,SystemSnapshot)
-  public static void writeChemkinInputFile(final ReactionModel p_reactionModel, SystemSnapshot p_beginStatus, LinkedHashSet nonpdep_from_seed) {
+  public static void writeChemkinInputFile(final ReactionModel p_reactionModel, SystemSnapshot p_beginStatus) {
 
       //String dir = System.getProperty("RMG.workingDirectory");
       //if (!dir.endsWith("/")) dir += "/";
@@ -485,11 +495,11 @@ public  Chemkin() {
           bufferedWriter.write(writeChemkinElement());
           bufferedWriter.write(writeChemkinSpecies(p_reactionModel, p_beginStatus));
           bufferedWriter.write(writeChemkinThermo(p_reactionModel));
-          bufferedWriter = writeChemkinPdepReactions(p_reactionModel, p_beginStatus,bufferedWriter,nonpdep_from_seed);
+          bufferedWriter = writeChemkinPdepReactions(p_reactionModel, p_beginStatus,bufferedWriter);
       } catch (FileNotFoundException ex) {
-          ex.printStackTrace();
+          Logger.logStackTrace(ex);
       } catch (IOException ex) {
-          ex.printStackTrace();
+          Logger.logStackTrace(ex);
       } finally {
           //Close the BufferedWriter
           try {
@@ -498,7 +508,7 @@ public  Chemkin() {
                   bufferedWriter.close();
               }
           } catch (IOException ex) {
-              ex.printStackTrace();
+              Logger.logStackTrace(ex);
           }
       }
       
@@ -506,18 +516,18 @@ public  Chemkin() {
 	  copyFiles(chemkinFile, "chemkin/chem.inp");
       
 	  // write tableOfRateCoeffs.txt if running with pressure-dependence
-      if (PDepRateConstant.getMode() == Mode.CHEBYSHEV ||
-    		  PDepRateConstant.getMode() == Mode.PDEPARRHENIUS ||
-    		  PDepRateConstant.getMode() == Mode.RATE) {
+      if (PDepRateConstant.getDefaultMode() == Mode.CHEBYSHEV ||
+    		  PDepRateConstant.getDefaultMode() == Mode.PDEPARRHENIUS ||
+    		  PDepRateConstant.getDefaultMode() == Mode.RATE) {
 	      String newFile = directory+"/tableOfRateCoeffs.txt";
 	      BufferedWriter bw = null;
 	      try {
 	    	  bw = new BufferedWriter(new FileWriter(newFile));
 		      bw = writeGridOfRateCoeffs(p_reactionModel,bw);
 	      } catch (FileNotFoundException ex) {
-	          ex.printStackTrace();
+	          Logger.logStackTrace(ex);
 	      } catch (IOException ex) {
-	          ex.printStackTrace();
+	          Logger.logStackTrace(ex);
 	      } finally {
 	          //Close the BufferedWriter
 	          try {
@@ -526,7 +536,7 @@ public  Chemkin() {
 	                  bw.close();
 	              }
 	          } catch (IOException ex) {
-	              ex.printStackTrace();
+	              Logger.logStackTrace(ex);
 	          }
 	      }
 
@@ -542,14 +552,14 @@ public  Chemkin() {
 	  
   }
   
-  public static void writeChemkinInputFile(ReactionSystem rs, LinkedHashSet nonpdep_from_seed) {
+  public static void writeChemkinInputFile(ReactionSystem rs) {
 	  // call the above writeChemkinInputFile method, with the appropriate parameters
-	  writeChemkinInputFile(rs.reactionModel, rs.initialStatus, nonpdep_from_seed);
+	  writeChemkinInputFile(rs.reactionModel, rs.initialStatus);
    }
   
 
 //## operation writeChemkinPdepReactions(ReactionModel, SystemSnapshot)
- public static BufferedWriter writeChemkinPdepReactions(ReactionModel p_reactionModel, SystemSnapshot p_beginStatus, BufferedWriter bufferedWriter, LinkedHashSet nonpdep_from_seed) throws IOException {
+ public static BufferedWriter writeChemkinPdepReactions(ReactionModel p_reactionModel, SystemSnapshot p_beginStatus, BufferedWriter bufferedWriter) throws IOException {
 	 /* 
 	  Writes all reactions, not just the P-dep ones.
 	  Returns the result as a string.
@@ -573,53 +583,75 @@ public  Chemkin() {
 	  
       bufferedWriter.write("REACTIONS\t" + reactionHeader);
       
+	 LinkedList seedList = new LinkedList();
 	  LinkedList pDepList = new LinkedList();
 	  LinkedList nonPDepList = new LinkedList();
 	  LinkedList duplicates = new LinkedList();
 	  
       CoreEdgeReactionModel cerm = (CoreEdgeReactionModel)p_reactionModel;
-      //first get troe, thirdbody, and Lindemann reactions (from seed mechanism and primary kinetics) and add them to the pDepList
-      for (Iterator iter = cerm.getReactionSet().iterator(); iter.hasNext(); ) {
-        	Reaction r = (Reaction)iter.next();
-        	/*
-        	 * 1Jul2009-MRH:
-        	 * 	Added extra set of parenthesis.  Before, if the rxn was reverse but an instance of
-        	 * 		TROEReaction, it would also be added to the pDepList, resulting in RMG reporting
-        	 * 		both rxns (forward and reverse) in the chem.inp file, w/o a DUP tag.  Furthermore,
-        	 * 		both rxns were given the same set of Arrhenius parameters.  Running this in
-        	 * 		Chemkin-v4.1.1 resulted in an error.
-        	 */
-        	if (r.isForward() && (r instanceof ThirdBodyReaction || r instanceof TROEReaction || r instanceof LindemannReaction)) {        		
-        		pDepList.add(r);
-        	}
-        }
-      
-	 // then get reactions from pressure-dependent networks and add them to pDepList
+	 
+	  // First, get all the seed mechanism reactions into the seedList.
+          // ... if a seed mechanism exists
+          if (cerm.getSeedMechanism() != null) {
+             for (Iterator iter = cerm.getSeedMechanism().getReactionSet().iterator(); iter.hasNext(); ) {
+                     Reaction r = (Reaction)iter.next();
+                     if (r.isForward()) {
+                             seedList.add(r);
+                     }
+             }
+          }
+	 
+	 // Then get troe, thirdbody, and Lindemann reactions (from primary reaction library) and add them to the pDepList
+	 // UNLESS they are already in the seed mechanism.
+	 for (Iterator iter = cerm.getReactionSet().iterator(); iter.hasNext(); ) {
+		 Reaction r = (Reaction)iter.next();
+		 if (!r.isForward()) continue;
+		 if (seedList.contains(r)) continue;
+		 // NB. the following is an if TRUE:
+		 if (r instanceof ThirdBodyReaction || r instanceof TROEReaction || r instanceof LindemannReaction) {
+			 pDepList.add(r);
+		 }
+	 }
+
+      	 // Then add all non-pdep, non-seed, reactions to the nonPDepList
+      for (Iterator iter = p_reactionModel.getReactionSet().iterator(); iter.hasNext(); ) {
+		  Reaction r = (Reaction)iter.next();
+		  if (!r.isForward()) continue;
+                  // Check the seedList against r and its reverse
+		  if (seedList.contains(r) || seedList.contains(r.getReverseReaction())) continue;
+		  if (r instanceof ThirdBodyReaction || r instanceof TROEReaction || r instanceof LindemannReaction) continue;
+		  // Made it through all the tests.
+		  nonPDepList.add(r);
+      }
+
+	 // Then get reactions from pressure-dependent networks and add them to pDepList
       for (Iterator iter = PDepNetwork.getNetworks().iterator(); iter.hasNext(); ) {
       	PDepNetwork pdn = (PDepNetwork)iter.next();
       	for (ListIterator pdniter = pdn.getNetReactions().listIterator(); pdniter.hasNext();) {
       		PDepReaction rxn = (PDepReaction) pdniter.next();
       		if (cerm.categorizeReaction(rxn) != 1) continue;
       		
-      		//check if this reaction is not already in the list and also check if this reaction has a reverse reaction
-      		// which is already present in the list.
       		if (rxn.getReverseReaction() == null)
       			rxn.generateReverseReaction();
-      		
-      		if (!rxn.reactantEqualsProduct() && !pDepList.contains(rxn) && !pDepList.contains(rxn.getReverseReaction()) &&
-                        !nonpdep_from_seed.contains(rxn) && !nonpdep_from_seed.contains(rxn.getReverseReaction()))  {
-      			pDepList.add(rxn);
-      		}
+      		// Check if this reaction is already in the list 
+      		// and also check if this reaction has a reverse reaction which is already present in the list.
+			// If any of these are true, skip this reaction and continue to the next one.
+      		if (rxn.reactantEqualsProduct()) continue;
+			if (pDepList.contains(rxn) || pDepList.contains(rxn.getReverseReaction())) continue;
+			if (seedList.contains(rxn) || seedList.contains(rxn.getReverseReaction())) continue;
+                        if (nonPDepList.contains(rxn) || nonPDepList.contains(rxn.getReverseReaction())) continue;
+			
+			// Made it through all the tests.
+			pDepList.add(rxn);
       	}
       }
 
-      for (Iterator iter = p_reactionModel.getReactionSet().iterator(); iter.hasNext(); ) {
-      	Reaction r = (Reaction)iter.next();
-		if (r.isForward() && !(r instanceof ThirdBodyReaction) && !(r instanceof TROEReaction) && !(r instanceof LindemannReaction)) {
-			nonPDepList.add(r);
-      	}
-      }
-      // First report pressure dependent reactions
+	  // First report seed mechanism reactions
+	  for (Iterator iter = seedList.iterator(); iter.hasNext();){
+		  Reaction r = (Reaction)iter.next();
+		  bufferedWriter.write(r.toChemkinString(p_beginStatus.getTemperature(),p_beginStatus.getPressure())+"\n");
+	  }
+      // Then report pressure dependent reactions
       for (Iterator iter = pDepList.iterator(); iter.hasNext();){
     	  Reaction r = (Reaction)iter.next();
 			// 6Jul2009-MRH:
@@ -633,12 +665,17 @@ public  Chemkin() {
     	  bufferedWriter.write(r.toChemkinString(p_beginStatus.getTemperature(),p_beginStatus.getPressure())+"\n");
       }
 	 // Third, report duplicate reactions
+	 // ...but the duplicates list is empty because nothing has touched it since it was made.
       for (Iterator iter = duplicates.iterator(); iter.hasNext();){
     	  Reaction r = (Reaction)iter.next();
     	  bufferedWriter.write(r.toChemkinString(p_beginStatus.getTemperature(),p_beginStatus.getPressure())+"\n\tDUP\n");
       }
 
       bufferedWriter.write("END\n");
+	 Logger.info(String.format("The chem.inp file has %d reactions (excluding duplicates).", seedList.size() + pDepList.size() + nonPDepList.size()));
+	 Logger.debug(String.format("    %d from Seed Mechanism(s)",seedList.size()));
+	 Logger.debug(String.format("    %d extra pressure-dependent reactions from primary libraries or estimated by RMG and FAME",pDepList.size()));
+	 Logger.debug(String.format("    %d extra non pressure-dependent reactions from primary libraries or estimated by RMG",nonPDepList.size()));
       return bufferedWriter;
   }
 
@@ -667,6 +704,10 @@ public  Chemkin() {
       }
 
       result.append("END\n");
+
+	  Logger.info(String.format("The chem.inp file has %d species (excluding inert gases).", cerm.getCore().getSpeciesNumber() ));
+	  if (cerm.getSeedMechanism() != null)
+		  Logger.debug(String.format("    %d of them are from the Seed Mechanism(s).",cerm.getSeedMechanism().getSpeciesSet().size() ));
       return result.toString();
   }
 
@@ -861,8 +902,9 @@ public  Chemkin() {
       	return true;
       }
       catch (Exception e) {
-      	System.out.println("Error in writing reactorInput.xml!");
-      	System.out.println(e.getMessage());
+		Logger.logStackTrace(e);
+      	Logger.error("Error in writing reactorInput.xml!");
+      	Logger.error(e.getMessage());
       	return false;
       }
 
@@ -895,7 +937,7 @@ public  Chemkin() {
   }
   
   
-public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged, TerminationTester tt, int iternum, LinkedHashSet nonpdep_from_seed) {
+public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionModel, boolean p_reactionChanged, SystemSnapshot p_beginStatus, ReactionTime p_beginTime, ReactionTime p_endTime, Temperature p_temperature, Pressure p_pressure, boolean p_conditionChanged, TerminationTester tt, int iternum) {
 	
 	//writeChemkinInputFile(p_reactionModel, p_beginStatus);
 	
@@ -904,7 +946,7 @@ public SystemSnapshot solve(boolean p_initialization, ReactionModel p_reactionMo
 	
 	writeReactorInputFile(p_reactionModel, p_beginTime, p_endTime, p_beginStatus);
 	runReactor();
-	System.out.println("After ODE: from " + p_beginTime + " to "+ p_endTime);
+	Logger.info("After ODE: from " + p_beginTime + " to "+ p_endTime);
 	SystemSnapshot result = readReactorOutputFile(p_reactionModel);
 	return result;
 }
@@ -942,7 +984,7 @@ public static void setSMILES(boolean yesno) {
 			fw.close();
 		}
 		catch (IOException e) {
-			System.out.println("Could not write "+filepath);
+			Logger.critical("Could not write "+filepath);
 			System.exit(0);
 		}
 	}

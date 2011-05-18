@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -39,6 +39,7 @@ import jing.chem.GATPFitException;
 import jing.mathTool.*;
 import jing.param.Temperature;
 import jing.mathTool.UncertainDouble;
+import jing.rxnSys.Logger;
 
 //## package jing::rxn 
 
@@ -105,7 +106,7 @@ public class ArrheniusKinetics implements Kinetics {
         double sum_alpha=0;
         double sum_E=0;
         double max_A=0;
-        double min_A=0;
+        double min_A=Double.MAX_VALUE;
         double max_n=Double.MIN_VALUE;
         double min_n=Double.MAX_VALUE;
         double max_E=Double.MIN_VALUE;
@@ -229,14 +230,30 @@ public class ArrheniusKinetics implements Kinetics {
 	
 	public boolean equals(Kinetics p_k){
 		if (p_k == null) return true;
-		
 		if (Math.abs((p_k.getA().getValue()-A.getValue())/A.getValue()) > 0.01)
 			return false;
-		if (Math.abs((p_k.getE().getValue()-E.getValue())/E.getValue()) > 0.01 && E.getValue() != 0)
+		if (Math.abs((p_k.getE().getValue()-E.getValue())/E.getValue()) > 0.01 && E.getValue() != p_k.getE().getValue())
 			return false;
-		if (Math.abs((p_k.getN().getValue()-n.getValue())/n.getValue()) > 0.01 && n.getValue() != 0)
+		if (Math.abs((p_k.getN().getValue()-n.getValue())/n.getValue()) > 0.01 && n.getValue() != p_k.getN().getValue())
 			return false;
 		return true;
+	}
+	
+	public boolean equalNESource(Kinetics p_k){
+		// Return true if N, E, and the Source are equal (ignoring A).
+		if (p_k == null) return true;
+		if (Math.abs((p_k.getE().getValue()-E.getValue())/E.getValue()) > 0.01 && E.getValue() != p_k.getE().getValue())
+			return false;
+		if (Math.abs((p_k.getN().getValue()-n.getValue())/n.getValue()) > 0.01 && n.getValue() != p_k.getN().getValue())
+			return false;
+		if (!source.equals(p_k.getSource()))
+			return false;
+		return true;
+	}
+	
+	// Add the passed in UncertainDouble to the existing A factor.
+	public void addToA(UncertainDouble p_extraA){
+		A = A.plus(p_extraA);
 	}
 	
     //## operation getAValue() 
@@ -268,7 +285,7 @@ public class ArrheniusKinetics implements Kinetics {
 			// Reaction is endothermic and the barrier is less than the endothermicity.
 			String newComment = getComment();
 			String warning = String.format("Ea raised by %.1f from %.1f to dHrxn(298K)=%.1f kcal/mol",p_Hrxn-Ea, Ea, p_Hrxn );
-			System.out.println(warning);
+			Logger.info(warning);
 			newComment += " Warning: " + warning;
 			UncertainDouble newEa = E.plus((p_Hrxn-Ea));
 			Ea = p_Hrxn;
@@ -289,11 +306,13 @@ public class ArrheniusKinetics implements Kinetics {
         return newK;
         //#]
     }
+	
     
     //## operation repOk() 
     public boolean repOk() {
         //#[ operation repOk() 
         if (getAValue()<0 || getA().getLowerBound()<0 || getA().getUpperBound()<0) return false;
+		// we used to also check: (getA().getLowerBound()<0 || getA().getUpperBound()<0) 
         return true;
         //#]
     }
@@ -334,10 +353,10 @@ public class ArrheniusKinetics implements Kinetics {
 		{
 			formatString[3] = source;
 			formatString[4] = comment;
-    		return String.format("%1.3e \t %2.2f \t %3.2f \t!%s  %s", formatString);
+    		return String.format("%1.3e \t % 2.2f \t % 3.2f \t!%s  %s", formatString);
     	}
 		else
-    		return String.format("%1.3e \t %2.2f \t %3.2f", formatString);
+    		return String.format("%1.3e \t % 2.2f \t % 3.2f", formatString);
 
     }
    
@@ -391,7 +410,7 @@ public class ArrheniusKinetics implements Kinetics {
 		fromPrimaryKineticLibrary = p_boolean;
 	}
 	
-	public boolean getFromPrimaryKineticLibrary() {
+	public boolean isFromPrimaryKineticLibrary() {
 		return fromPrimaryKineticLibrary;
 	}
 	

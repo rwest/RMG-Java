@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -44,6 +44,7 @@ import jing.chemParser.ChemParser;
 import jing.chemParser.InvalidReactionFormatException;
 import jing.chemUtil.Graph;
 import jing.mathTool.UncertainDouble;
+import jing.rxnSys.Logger;
 import jing.rxnSys.PrimaryKineticLibrary;
 import jing.rxnSys.SeedMechanism;
 
@@ -99,18 +100,18 @@ public class ReactionLibrary {
      }
      
         
-     public void appendReactionLibrary(String new_p_libraryName, String p_directoryPath) throws IOException {
+     public void appendReactionLibrary(String p_libraryName, String p_directoryPath) throws IOException {
      	// Appends the current Reaction Library with an additional one, allowing the user
      	// to combine separate Reaction Library easily. 
     	 
     	// Adds additional new name to Reaction Library  
-      	setName(name+"/"+new_p_libraryName);
+      	setName(name+"/"+p_libraryName);
       	// Read in the directory path
      	try {
-     		read(p_directoryPath,new_p_libraryName);	
+     		read(p_directoryPath,p_libraryName);
      	}
          catch (IOException e) {
-         	throw new IOException("Error reading Reaction Library: " + new_p_libraryName + '\n' + e.getMessage());
+         	throw new IOException("Error reading Reaction Library: " + p_libraryName + '\n' + e.getMessage());
          }
      }
      
@@ -123,38 +124,34 @@ public class ReactionLibrary {
     	 //	PrimaryKineticsLibrary / ReactionLibrary 
     	 
          try {
-         	if (!p_directoryName.endsWith("/")) p_directoryName = p_directoryName + "/";
- 			System.out.println("Reading Reaction Library from: "+p_directoryName);
+			 if (!p_directoryName.endsWith("/")) p_directoryName = p_directoryName + "/";
+			 Logger.info("Reading Reaction Library from: "+p_directoryName);
          	
- 			 
              String dictionaryFile = p_directoryName + "species.txt";
              String libraryFile = p_directoryName + "reactions.txt";
              String pdeplibraryFile = p_directoryName + "pdepreactions.txt";
              
              SeedMechanism sm = new SeedMechanism();
              dictionary.putAll(sm.readSpecies(dictionaryFile,p_name,"ReactionLibrary: "));
-             library.addAll(sm.readReactions(libraryFile,p_name,dictionary,"ReactionLibrary: ",false));
-             library.addAll(sm.readPdepReactions(pdeplibraryFile,p_name,dictionary,"ReactionLibrary: ",false));
-            
+             library.addAll(sm.readReactions(libraryFile,p_name,dictionary,"ReactionLibrary: "));
+             library.addAll(sm.readPdepReactions(pdeplibraryFile,p_name,dictionary,"ReactionLibrary: "));
              return;
          }
          catch (Exception e) {
+			Logger.logStackTrace(e);
          	throw new IOException("Can't read Reaction library.\n" + e.getMessage());
          }
      }
     
     // clearLibraryReaction() 
     public void clearLibraryReaction() {
-     
         library.clear();
-         }
+	}
     
-        // getLibraryReaction() 
+	// getLibraryReaction() 
     public Iterator getLibraryReaction() {
-        
         Iterator iter=library.iterator();
         return iter;
-        
     }
     
         /**
@@ -203,12 +200,6 @@ public class ReactionLibrary {
     
     }
     
-    // shamel Asof 6/10/2010 this method is not needed
-    //public static ReactionLibrary getINSTANCE() {
-    //    return INSTANCE;
-   // }
-    
-   
     public String getName() {
         return name;
     }

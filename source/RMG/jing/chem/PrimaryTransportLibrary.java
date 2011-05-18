@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -32,6 +32,7 @@ import java.util.*;
 
 import jing.chemUtil.*;
 import jing.chemParser.*;
+import jing.rxnSys.Logger;
 
 /**
  * PrimaryTransportLibrary.java
@@ -74,10 +75,10 @@ public class PrimaryTransportLibrary {
 
 	public void read(String p_dictionary, String p_library, String p_name) throws IOException, FileNotFoundException {
 		String source = "Primary Transport Library: " + p_name;
-		System.out.println("Reading " + source);
+		Logger.info("Reading " + source);
 		dictionary = readDictionary(p_dictionary, source);
 		library = readLibrary(p_library, dictionary, source);
-	}
+    }
 
 	public HashMap readLibrary(String p_transportFileName, HashMap p_dictionary, String source) throws IOException {
 		try{
@@ -113,9 +114,9 @@ public class PrimaryTransportLibrary {
 						else {
 							TransportData oldTransData = (TransportData)old;
 							if (!oldTransData.equals(newTransData)) {
-					            System.out.println("Duplicate transport data (same graph, different name) in " + source);
-					            System.out.println("\tIgnoring thermo data for species: " + newTransData.getName());
-					            System.out.println("\tStill storing thermo data for species: " + oldTransData.getName());
+					            Logger.debug("Duplicate transport data (same graph, different name) in " + source);
+					            Logger.debug("\tIgnoring thermo data for species: " + newTransData.getName());
+					            Logger.debug("\tStill storing thermo data for species: " + oldTransData.getName());
 							}
 						}
 					}
@@ -123,7 +124,7 @@ public class PrimaryTransportLibrary {
 				catch (NumberFormatException e) {
 					Object o = p_dictionary.get(thermo);
 					if (o == null) {
-						System.out.println(name + ": "+thermo);
+						Logger.error(name + ": "+thermo);
 					}
 				}
 				line = ChemParser.readMeaningfulLine(data, true);
@@ -132,6 +133,7 @@ public class PrimaryTransportLibrary {
 		    return library;
 		}
 		catch (Exception e){
+			Logger.logStackTrace(e);
 		   throw new IOException("Can't read transport in primary transport library!");
 		}
 	}
@@ -163,14 +165,14 @@ public class PrimaryTransportLibrary {
 					if (td == null){
 						dictionary.put(name, graph);
 					} else {
-						System.out.println("Ignoring species " + name +
+						Logger.debug("Ignoring species " + name +
 							" -- Graph already exists in user-defined " + td.source);
 					}
 				}
 				else{
 					Graph oldGraph = (Graph)old;
 					if (!oldGraph.equals(graph)) {
-						System.out.println("Can't replace graph in primary transport library!");
+						Logger.critical("Can't replace graph in primary transport library!");
 						System.exit(0);
 					}
 				}

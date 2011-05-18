@@ -1,19 +1,14 @@
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Abraham Solute Descriptor group tree using Rob Ashcraft's Group Definitions                                                                
-// Defines group trees for determining 5 out of 6 Abraham solute descriptors (all but hydrogen bond acidity)  
-// Constructed by Amrit Jalan                                                                            
-// March 30, 2009                                                                                        
-// Reference: Platts et al J.Chem Inf. Comput. Sci. 1999, 39, 835-845                                     
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//////////////////////////////////////////////////////////////////////////////
+// Abraham Solute Descriptor group tree for radical corrections             //
+//////////////////////////////////////////////////////////////////////////////
 
 L0: RJ
 
 	L1: CJ
-	
+
 	L1: OJ
 
 		L2: ROJ
 			L3: RC(O)OJ
 			L3: ROOJ
-		
+			

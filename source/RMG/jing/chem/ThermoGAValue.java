@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -282,6 +282,14 @@ public class ThermoGAValue {
         return name;
     }
 
+    public String getSource() {
+        if (source == null) return "Estimated by Group Additivity";
+        return source;
+    }
+
+    public void setSource(String p_source) {
+        source = p_source;
+    }
 }
 /*********************************************************************
         File Path	: RMG\RMG\jing\chem\ThermoGAValue.java

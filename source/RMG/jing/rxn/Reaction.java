@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -39,6 +39,7 @@ import jing.mathTool.*;
 import jing.chemParser.*;
 import jing.chem.Species;
 import jing.param.Temperature;
+import jing.rxnSys.Logger;
 import jing.rxnSys.NegativeConcentrationException;
 import jing.rxnSys.ReactionModelGenerator;
 import jing.rxnSys.SystemSnapshot;
@@ -72,13 +73,13 @@ public class Reaction {
   protected Structure structure;
   protected double UpperBoundRate;//svp
   protected double LowerBoundRate;//svp
-  //protected Kinetics additionalKinetics = null;  //This is incase a reaction has two completely different transition states.
+
   protected boolean finalized = false;
   protected String ChemkinString = null;
-  protected boolean ratesForKineticsAndAdditionalKineticsCross = false; //10/29/07 gmagoon: added variable to keep track of whether both rate constants are maximum for some temperature in the temperature range
-  
+   
   protected boolean kineticsFromPrimaryKineticLibrary = false;
-  protected ReactionTemplate rxnTemplate;
+
+  protected boolean expectDuplicate = false;
   // Constructors
 
   //## operation Reaction()
@@ -94,27 +95,7 @@ public class Reaction {
 	  //rateConstant = calculateTotalRate(Global.temperature);
       //#]
   }
-  /*public Reaction(Reaction rxn) {
-		structure = rxn.structure;
-		kinetics = rxn.kinetics;
 
-		comments = rxn.comments;
-
-		fittedReverseKinetics = rxn.fittedReverseKinetics;
-
-		rateConstant = rxn.rateConstant;
-
-		reverseReaction = rxn.reverseReaction;
-
-		UpperBoundRate = rxn.UpperBoundRate;
-		LowerBoundRate = rxn.LowerBoundRate;
-		additionalKinetics = rxn.additionalKinetics;
-		finalized = rxn.finalized;
-		ChemkinString  = rxn.ChemkinString;
-		ratesForKineticsAndAdditionalKineticsCross = rxn.ratesForKineticsAndAdditionalKineticsCross;
-
-  }*/
-  
   
   //## operation allProductsIncluded(HashSet)
   public boolean allProductsIncluded(HashSet p_speciesSet) {
@@ -297,12 +278,7 @@ public class Reaction {
             if (numReacts == 1 && numProds == 1) {
                 keff = rate;
                 rate = keff;
-
-                // Add comments only if the temperature at which the function has been called corresponds to the system temperature specified in the condition file
-                if (p_temperature.getK()==sys_temp.getK()){
-                setKineticsComments(k_All[0].getComment() + "\t" + "Diffusive limits do not apply " + "\t" + "rate=" + rate + "\t" + "Keq =" + calculateKeq(p_temperature) + "\t" + "Temperature=" + p_temperature,0);
-                }
-                                
+				DiffFactor = 1;
             }
             else if (numReacts == 1 && numProds == 2) {
 
@@ -321,10 +297,6 @@ public class Reaction {
                     rate = k_back*calculateKeq(p_temperature);
                     DiffFactor = 1;
                 }
-
-                if (p_temperature.getK()==sys_temp.getK()){
-                setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "rate=" + rate  + "\t" + "Keq =" + calculateKeq(p_temperature) + "\t" + "Temperature=" + p_temperature,0);
-                }
                                 
             }
             else if (numReacts == 2 && numProds == 1) {
@@ -336,13 +308,7 @@ public class Reaction {
 
                 keff = k_forw_eff;
                 DiffFactor = keff/rate;
-                rate = keff;
-
-                if (p_temperature.getK()==sys_temp.getK()){
-                setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "rate=" + rate + "\t" + "Keq =" + calculateKeq(p_temperature) + "\t" + "Temperature=" + p_temperature,0);
-                }
-                            
-
+                rate = keff;        
             }
             else if (numReacts == 2 && numProds == 2) {
 
@@ -357,29 +323,18 @@ public class Reaction {
                     keff = k_forw_eff;
                     DiffFactor = keff/rate;
                     rate = keff;
-
-                    if (p_temperature.getK()==sys_temp.getK()){
-                    setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = "  + DiffFactor + "\t" + "rate=" + rate + "\t" + "Keq =" + calculateKeq(p_temperature) + "\t" + "Temperature=" + p_temperature,0);
-                    }
-                    
                 }
                 else if (rxn_Keq<1){ // Reverse reaction is exothermic and the corresponding diffusion limit should be used
                     double k_back = rate / calculateKeq(p_temperature);
                     LinkedList reactantsInBackRxn = structure.products;
-                    double k_back_diff= calculatediff(reactantsInBackRxn);
-                    double k_back_eff= k_back*k_back_diff/(k_back + k_back_diff);
-                    keff = k_back_eff*calculateKeq(p_temperature);
+                    double k_back_diff = calculatediff(reactantsInBackRxn);
+                    double k_back_eff = k_back*k_back_diff/(k_back + k_back_diff);
+                    keff = k_back_eff * calculateKeq(p_temperature);
                     DiffFactor = keff/rate;
                     rate = keff;
-
-                    if (p_temperature.getK()==sys_temp.getK()){
-                    setKineticsComments(k_All[0].getComment() + "\t" + "Diffusion factor = " + DiffFactor + "\t" + "rate=" + rate + "\t" + "Keq =" + calculateKeq(p_temperature) + "\t" + "Temperature=" + p_temperature,0);
-                    }
-                                       
                 }
-
             }
-                else if (numReacts == 2 && numProds == 3) {
+			else if (numReacts == 2 && numProds == 3) {
 
                 double k_forw = rate;
                 LinkedList reactantsInForwRxn = structure.reactants;
@@ -389,14 +344,19 @@ public class Reaction {
                 keff = k_forw_eff;
                 DiffFactor = keff/rate;
                 rate = keff;
-
-                if (p_temperature.getK()==sys_temp.getK()){
-                setKineticsComments(getComments() + "\t"  + "Diffusion factor = " + DiffFactor + "\t" + "rate=" + rate  + "\t" + "Keq =" + calculateKeq(p_temperature) + "\t" + "Temperature=" + p_temperature,0);
-                }
-                                
             }
-
-        }
+			// Add comments only if the temperature at which the function has been called corresponds to the system temperature specified in the condition file
+			// And if they haven't already been added
+			if (p_temperature.getK()==sys_temp.getK()){
+				String oldComments = k_All[0].getComment();
+				if (!oldComments.contains("Diffusion")) {
+					if (numReacts == 1 && numProds == 1)
+						oldComments += " Unimolecular: no diffusion limitation.";
+					String newComments = oldComments + String.format(" Diffusion factor=%.3g, rate=%.3g, Keq=%.3g, at T=%.0fK.", DiffFactor, rate, calculateKeq(p_temperature), p_temperature.getK());
+					setKineticsComments(newComments,0);
+				}
+			}
+		}
        return rate;
 
   	}
@@ -414,7 +374,7 @@ public class Reaction {
     public double calculatediff(LinkedList p_struct) {
 
       if (p_struct.size()!=2){
-          System.out.println("Cannot compute diffusive limit if number of reactants is not equal to 2");
+          Logger.warning("Cannot compute diffusive limit if number of reactants is not equal to 2");
       }
 
       // Array containing the radii of the two species passed in p_struct
@@ -1156,15 +1116,6 @@ public class Reaction {
       return structure.getProductList();
       //#]
   }
-
-  //10/26/07 gmagoon: changed to have temperature and pressure passed as parameters (part of eliminating use of Global.temperature)
-  public double getRateConstant(Temperature p_temperature){
-  //public double getRateConstant(){
-	  if (rateConstant == 0)
-                  rateConstant = calculateTotalRate(p_temperature);
-	//	  rateConstant = calculateTotalRate(Global.temperature);
-	  return rateConstant;
-  }
   
   //## operation getProductNumber()
   public int getProductNumber() {
@@ -1180,21 +1131,6 @@ public class Reaction {
       //#]
   }
 
-  /*//## operation getRateConstant()
-  public Kinetics getRateConstant() {
-      //#[ operation getRateConstant()
-      if (isForward()) {
-      	return rateConstant;
-      }
-      else if (isBackward()) {
-      	Reaction rr = getReverseReaction();
-      	if (rr == null) throw new NullPointerException("Reverse reaction is null.\n" + structure.toString());
-      	if (!rr.isForward()) throw new InvalidReactionDirectionException(structure.toString());
-      	return rr.getRateConstant();
-      }
-      else throw new InvalidReactionDirectionException(structure.toString());
-      //#]
-  }*/
 
   //## operation getReactantList()
   public LinkedList getReactantList() {
@@ -1343,45 +1279,45 @@ public class Reaction {
   public boolean repOk() {
       //#[ operation repOk()
       if (!structure.repOk()) {
-      	System.out.println("Invalid Reaction Structure:" + structure.toString());
+      	Logger.error("Invalid Reaction Structure:" + structure.toString());
       	return false;
       }
 
       if (!isForward() && !isBackward()) {
-      	System.out.println("Invalid Reaction Direction: " + String.valueOf(getDirection()));
+      	Logger.error("Invalid Reaction Direction: " + String.valueOf(getDirection()));
       	return false;
       }
       if (isBackward() && reverseReaction == null) {
-      	System.out.println("Backward Reaction without a reversed reaction defined!");
+      	Logger.error("Backward Reaction without a reversed reaction defined!");
       	return false;
       }
 
       /*if (!getRateConstant().repOk()) {
-      	System.out.println("Invalid Rate Constant: " + getRateConstant().toString());
+      	Logger.error("Invalid Rate Constant: " + getRateConstant().toString());
       	return false;
       }*/
 
       Kinetics[] allKinetics = getKinetics();
       for (int numKinetics=0; numKinetics<allKinetics.length; ++numKinetics) {
 	      if (!allKinetics[numKinetics].repOk()) {
-	      	System.out.println("Invalid Kinetics: " + allKinetics[numKinetics].toString());
+	      	Logger.error("Invalid Kinetics: " + allKinetics[numKinetics].toString());
 	      	return false;
 	      }
       }
 
       if (!checkRateRange()) {
-      	System.out.println("reaction rate is higher than the upper rate limit!");
-      	System.out.println(getStructure().toString());
+      	Logger.error("reaction rate is higher than the upper rate limit!");
+      	Logger.info(getStructure().toString());
       	Temperature tup = new Temperature(1500,"K");
       	if (isForward()) {
-      		System.out.println("k(T=1500) = " + String.valueOf(calculateTotalRate(tup)));
+      		Logger.info("k(T=1500) = " + String.valueOf(calculateTotalRate(tup)));
       	}
       	else {
-      		System.out.println("k(T=1500) = " + String.valueOf(calculateTotalRate(tup)));
-      		System.out.println("Keq(T=1500) = " + String.valueOf(calculateKeq(tup)));
-      		System.out.println("krev(T=1500) = " + String.valueOf(getReverseReaction().calculateTotalRate(tup)));
+      		Logger.info("k(T=1500) = " + String.valueOf(calculateTotalRate(tup)));
+      		Logger.info("Keq(T=1500) = " + String.valueOf(calculateKeq(tup)));
+      		Logger.info("krev(T=1500) = " + String.valueOf(getReverseReaction().calculateTotalRate(tup)));
       	}
-      	System.out.println(getKinetics());
+      	Logger.info(getKinetics().toString());
       	return false;
       }
       return true;
@@ -1413,7 +1349,9 @@ public class Reaction {
 				result.append(strucString + " " + k);
 			else
 				result.append(strucString + " " + k + "\nDUP\n");
-		}		
+		}
+	  if (result.charAt(result.length()-1)=='\n')
+		  result.deleteCharAt(result.length()-1);
 		ChemkinString = result.toString();
 		return result.toString();
   }
@@ -1541,7 +1479,7 @@ public class Reaction {
 	  }
   }
 	
-	public void addAdditionalKinetics(Kinetics p_kinetics, int red) {
+	public void addAdditionalKinetics(Kinetics p_kinetics, int red, boolean readingFromUserLibrary) {
 		if (finalized)
 			return;
 		if (p_kinetics == null)
@@ -1551,11 +1489,15 @@ public class Reaction {
 			kinetics[0] = p_kinetics;
 			structure.redundancy = 1;
 		}
-		else {
+		else if (readingFromUserLibrary || (!readingFromUserLibrary && !p_kinetics.isFromPrimaryKineticLibrary())) {
 			boolean kineticsAlreadyPresent = false;
-			for (int numKinetics=0; numKinetics<kinetics.length; ++numKinetics) {
-				if (kinetics[numKinetics].equals(p_kinetics)) {
-					structure.increaseRedundancy(red);
+			for (int i=0; i<kinetics.length; i++) {
+				Kinetics old_kinetics = kinetics[i];
+				if (!( old_kinetics instanceof ArrheniusKinetics))
+					continue; // we can't compare or increment 
+				if ( ((ArrheniusKinetics)old_kinetics).equalNESource(p_kinetics) )
+				{
+					((ArrheniusKinetics)old_kinetics).addToA( p_kinetics.getA().multiply((double)red) );
 					kineticsAlreadyPresent = true;
 				}
 			}
@@ -1569,167 +1511,8 @@ public class Reaction {
 				structure.redundancy = 1;
 			}
 		}
-		
-		/*
-		 * MRH 24MAR2010:
-		 * 	Commented out.  As RMG will be able to handle more than 2 Kinetics
-		 * 		per reaction, the code below is no longer necessary
-		 */
-		//10/29/07 gmagoon: changed to use Global.highTemperature, Global.lowTemperature (versus Global.temperature); apparently this function chooses the top two rates when there are multiple reactions with same reactants and products; the reactions with the top two rates are used; use of high and low temperatures would be less than ideal in cases where temperature of system changes over the course of reaction
-		//10/31/07 gmagoon: it is assumed that two rate constants vs. temperature cross each other at most one time over the temperature range of interest
-		//if there at least three different reactions/rates and rate crossings/intersections occur, the two rates used are based on the lowest simulation temperature and a warning is displayed
-//		else if (additionalKinetics == null){
-//			if (p_kinetics.calculateRate(Global.lowTemperature) > kinetics.calculateRate(Global.lowTemperature)){
-//				if (p_kinetics.calculateRate(Global.highTemperature) < kinetics.calculateRate(Global.highTemperature))
-//					ratesForKineticsAndAdditionalKineticsCross = true;
-//				additionalKinetics = kinetics;
-//				kinetics = p_kinetics;
-//				structure.redundancy = 1;
-//			}
-//			else{
-//				if(p_kinetics.calculateRate(Global.highTemperature) > kinetics.calculateRate(Global.highTemperature))
-//					ratesForKineticsAndAdditionalKineticsCross = true;
-//				additionalKinetics = p_kinetics;
-//				}
-//			}
-//		else if (additionalKinetics.equals(p_kinetics))
-//			return;
-//		else {
-//			if(ratesForKineticsAndAdditionalKineticsCross){
-//				if(p_kinetics.calculateRate(Global.lowTemperature) > kinetics.calculateRate(Global.lowTemperature)){
-//					if(p_kinetics.calculateRate(Global.highTemperature) > kinetics.calculateRate(Global.highTemperature))
-//						ratesForKineticsAndAdditionalKineticsCross = false;
-//					System.out.println("WARNING: reaction that may be significant at higher temperatures within the provided range is being neglected; see following for details:");
-//					System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//					System.out.println("Ignoring the rate constant " + additionalKinetics.toString() );				
-//					additionalKinetics = kinetics;
-//					kinetics = p_kinetics;
-//				}
-//				else if (p_kinetics.calculateRate(Global.lowTemperature) < additionalKinetics.calculateRate(Global.lowTemperature)){
-//					if(p_kinetics.calculateRate(Global.highTemperature) > kinetics.calculateRate(Global.highTemperature))
-//						System.out.println("WARNING: reaction that may be significant at higher temperatures within the provided range is being neglected; see following for details:");
-//					System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//					System.out.println("Ignoring the rate constant " + p_kinetics.toString() );
-//				}
-//				else{//else p_kinetics @ low temperature is between kinetics and additional kinetics at low temperature
-//					if(p_kinetics.calculateRate(Global.highTemperature) < kinetics.calculateRate(Global.highTemperature))
-//						ratesForKineticsAndAdditionalKineticsCross = false;
-//					System.out.println("WARNING: reaction that may be significant at higher temperatures within the provided range is being neglected; see following for details:");
-//					System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//					System.out.println("Ignoring the rate constant " + additionalKinetics.toString() );
-//					additionalKinetics = p_kinetics;
-//				}                        
-//			}
-//			else{
-//				if ((p_kinetics.calculateRate(Global.lowTemperature) > kinetics.calculateRate(Global.lowTemperature)) && (p_kinetics.calculateRate(Global.highTemperature) > kinetics.calculateRate(Global.highTemperature))){
-//					System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//					System.out.println("Ignoring the rate constant " + additionalKinetics.toString() ); //10/29/07 gmagoon: note that I have moved this before reassignment of variables; I think this was a minor bug in original code
-//					additionalKinetics = kinetics;
-//					kinetics = p_kinetics;
-//				}
-//				else if ((p_kinetics.calculateRate(Global.lowTemperature) < additionalKinetics.calculateRate(Global.lowTemperature))&&(p_kinetics.calculateRate(Global.highTemperature) < additionalKinetics.calculateRate(Global.highTemperature))){
-//					System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//					System.out.println("Ignoring the rate constant " + p_kinetics.toString() );
-//				}
-//				else if ((p_kinetics.calculateRate(Global.lowTemperature) > additionalKinetics.calculateRate(Global.lowTemperature))&&(p_kinetics.calculateRate(Global.highTemperature) > additionalKinetics.calculateRate(Global.highTemperature))&&(p_kinetics.calculateRate(Global.lowTemperature) < kinetics.calculateRate(Global.lowTemperature))&&(p_kinetics.calculateRate(Global.highTemperature) < kinetics.calculateRate(Global.highTemperature))){
-//					System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//					System.out.println("Ignoring the rate constant " + additionalKinetics.toString() );
-//					additionalKinetics = p_kinetics;
-//				}
-//				else //else there is at least one crossing in the temperature range of interest between p_kinetics and either kinetics or additionalKinetics; base which reaction is kept on the lowest temperature
-//                {
-//					if(p_kinetics.calculateRate(Global.lowTemperature) > kinetics.calculateRate(Global.lowTemperature)){
-//						if(p_kinetics.calculateRate(Global.highTemperature) < additionalKinetics.calculateRate(Global.highTemperature))
-//							System.out.println("WARNING: reaction that may be significant at higher temperatures within the provided range is being neglected; see following for details:");
-//						System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//						System.out.println("Ignoring the rate constant " + additionalKinetics.toString() );
-//						additionalKinetics = kinetics;
-//						kinetics = p_kinetics;
-//						ratesForKineticsAndAdditionalKineticsCross = true;
-//					}
-//					else if(p_kinetics.calculateRate(Global.lowTemperature) < additionalKinetics.calculateRate(Global.lowTemperature)){
-//						System.out.println("WARNING: reaction that may be significant at higher temperatures within the provided range is being neglected; see following for details:");
-//						System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//						System.out.println("Ignoring the rate constant " + p_kinetics.toString() );
-//					}
-//					else //else p_kinetics at low temperature is between kinetics and additional kinetics at low temperature
-//                    {
-//						if(p_kinetics.calculateRate(Global.highTemperature) > kinetics.calculateRate(Global.highTemperature))
-//							ratesForKineticsAndAdditionalKineticsCross = true;
-//						else//else p_kinetics crosses additional kinetics
-//							System.out.println("WARNING: reaction that may be significant at higher temperatures within the provided range is being neglected; see following for details:");
-//						System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//						System.out.println("Ignoring the rate constant " + additionalKinetics.toString() );
-//						additionalKinetics = p_kinetics;
-//					}
-//				}
-//			}
-//		}                
-//                else if (additionalKinetics == null){
-//			if (p_kinetics.calculateRate(Global.temperature) > kinetics.calculateRate(Global.temperature)){
-//				additionalKinetics = kinetics;
-//				kinetics = p_kinetics;
-//				structure.redundancy = 1;
-//			}
-//			else additionalKinetics = p_kinetics;
-//              }
-//		else if (additionalKinetics.equals(p_kinetics))
-//			return;
-//		else {
-//			if (p_kinetics.calculateRate(Global.temperature) > kinetics.calculateRate(Global.temperature)){
-//				additionalKinetics = kinetics;
-//				kinetics = p_kinetics;
-//				System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//				System.out.println("Ignoring the rate constant " + additionalKinetics.toString() );
-//			
-//			}
-//			else if (p_kinetics.calculateRate(Global.temperature) < additionalKinetics.calculateRate(Global.temperature)){
-//				System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//				System.out.println("Ignoring the rate constant " + p_kinetics.toString() );
-//			}
-//			else {
-//				System.out.println("More than 2 kinetics provided for reaction " + structure.toChemkinString(true));
-//				System.out.println("Ignoring the rate constant " + additionalKinetics.toString() );
-//				additionalKinetics = p_kinetics;
-//			}
-//		}
 	}
-
-	/*
-	 * MRH 18MAR2010:
-	 * A reaction's kinetics is now an array.  The additionalKinetics is now
-	 * 	obsolete and this method will be removed (to ensure nothing calls it)
-	 */
-//	public boolean hasAdditionalKinetics(){
-//		return (additionalKinetics != null);
-//	}
-	
-	//public int totalNumberOfKinetics(){ //7/26/09 gmagoon: this is not used, and appears to incorrectly assume that there are a maximum of two kinetics...I think this was old and I have changed it since
-	//	if (hasAdditionalKinetics())
-	//		return 2;
-	//	else
-	//		return 1;
-	//}
-	
-	/*
-	 * MRH 18MAR2010:
-	 * Restructuring a reaction's kinetics
-	 * 	With a reaction's kinetics now being defined as an array of Kinetics,
-	 * 		instead of "kinetics" and "additionalKinetics", the getAllKinetics()
-	 * 		method is now obsolete.  
-	 */
-//	public HashSet getAllKinetics(){
-//		HashSet allKinetics = new HashSet();
-//		allKinetics.add(kinetics.multiply(structure.redundancy));
-//		if ( hasAdditionalKinetics()){
-//			allKinetics.add(additionalKinetics.multiply(structure.redundancy));
-//			
-//		}
-//		
-//		return allKinetics;	
-//	}
-	
-	
+			
 
 	public void setFinalized(boolean p_finalized) {
 		finalized = p_finalized;
@@ -1813,7 +1596,7 @@ public class Reaction {
 	 */
 	public double calculateForwardFlux(SystemSnapshot ss) {
 		Temperature T = ss.getTemperature();
-		double forwardFlux = getRateConstant(T);
+		double forwardFlux = calculateTotalRate(T);
 		for (ListIterator<Species> iter = getReactants(); iter.hasNext(); ) {
 			Species spe = iter.next();
 			double conc = 0.0;
@@ -1853,17 +1636,47 @@ public class Reaction {
 		kineticsFromPrimaryKineticLibrary = p_boolean;
 	}
 	
-	public ReactionTemplate getReactionTemplate() {
-		return rxnTemplate;
-	}
 
-	public void setReactionTemplate(ReactionTemplate rt) {
-		rxnTemplate = rt;
-	}
-	
 	public boolean hasMultipleKinetics() {
 		if (getKinetics().length > 1) return true;
 		else return false;
+	}
+
+    public void setExpectDuplicate(boolean b) {
+        expectDuplicate = b;
+    }
+
+    public boolean getExpectDuplicate() {
+        return expectDuplicate;
+    }
+	
+	public void prune() {
+		// Do what's necessary to prune the reaction
+		// Also clears the reverse, so don't expect to be able to get it back
+		
+		// Do santy check on the isFromPrimaryKineticLibrary() method we rely on.
+		// (This shouldn't be necessary, but we have no unit test framework so I'm building one in here!)
+		if (!isFromPrimaryKineticLibrary())
+		{
+			if (isForward())
+				if (kinetics != null)
+					if (getKineticsSource(0).contains("Library"))
+						throw new RuntimeException(String.format(
+							"Reaction %s kinetics source contains 'Library' but isFromPrimaryKineticLibrary() returned false.",this));
+			if (isBackward())
+				if (getReverseReaction().getKineticsSource(0) != null)
+					if (getReverseReaction().getKineticsSource(0).contains("Library"))
+						throw new RuntimeException(String.format(
+							"Reverse of reaction %s kinetics source contains 'Library' but isFromPrimaryKineticLibrary() returned false.",this));
+			// I'm not sure why we can't clear the reverse anyway - as long as the direction WITH kinetics still has a Structure we should be ok.
+		}
+		
+		// Use isFromPrimaryKineticLibrary() to decide if it's safe to clear the reaction structure
+		if (!isFromPrimaryKineticLibrary()){
+			setStructure(null);
+			setReverseReaction(null);
+		}
+		
 	}
 
 }

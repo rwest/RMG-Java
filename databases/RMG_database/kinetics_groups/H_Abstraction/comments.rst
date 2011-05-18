@@ -1512,9 +1512,9 @@ CH3OH + OH --> CH2OH + H2O The calculated rate constants are in good agreement w
 C.D.W divided original rate expression by 3 ( from A= 2.11E+11), to get rate expression per H atom.
 
 Verified by Greg Magoon
-**Note that R2 from this paper appears to be missing from the RMG library, so I have added it as 100_R2**
+**Note that R2 from this paper appears to be missing from the RMG library, so I have added it as 1001**
 
-100_R2: [100] Jodkowski, J.T.; Rauez, M.-T.; Rayez, J.-C. J. Phys. Chem. A. 1999, 103, 3750.
+1001: [100] Jodkowski, J.T.; Rauez, M.-T.; Rayez, J.-C. J. Phys. Chem. A. 1999, 103, 3750.
 
 CH3OH + H --> CH2OH + H2 (Rxn. R2 in paper)
 
@@ -3134,7 +3134,7 @@ InChI=1/C3H7/c1-3-2/h3H,1-2H3 (external symmetry number = 1, spin multiplicity =
 InChI=1/C4H10O/c1-4(2)3-5/h4-5H,3H2,1-2H3 (external symmetry number = 1, spin multiplicity = 1)
 
 ----
-501R
+1002
 ----
 MRH CBS-QB3 calculations w/RRHO [MRHCBSQB3RRHO]_.
 
@@ -3559,8 +3559,64 @@ and assigned it to the top level X_H node so that whenever .OO. is abstracting f
 something without a proper rate, this value is used instead of the lengthy average.
 See notes to 523 for further details.
 
+---
+533
+---
 
+For CH4 + C2 = CH3 + C2H
 
+J. Phys. Chem. A 2010, 114, 4580–4585
+http://dx.doi.org/10.1021/jp1012494
+
+Rate Constants and Kinetic Isotope Effects on the Reaction of C2($X^1\Sigma_g^+$) with CH4 and CD4.
+Akira Matsugi, Kohsuke Suma, and Akira Miyoshi
+
+It was measured at pretty low temperatures (294-376), but also calculated ab initio. The calculated
+rates are plotted but the expression is not reported.
+
+    k = (10.0 +- 2.1)E-11 exp[-(4.4+-0.5 kJ mol)/RT] cm3 molecule-1 s-1
+which gives 
+    A = 6e13+-1.3e13 cm3/mole/s
+    n = 0
+    Ea = 1.05+-0.12  kcal/mol
+The degeneracy of this reaction is 8 though, so per-site A is:
+    A = 7.5e12+-1.6e12
+    
+(See also  doi:10.1063/1.3480395  for reactions of C2, but that may be the wrong electronic state.)
+
+---
+534
+---
+
+Exact reaction: HOOH + *O-CH=CH-C2H5 <=> HO-CH=CH-C2H5 + HOO*
+Rxn family nodes: H2O2 + InChI=1/C4H7O/c1-2-3-4-5/h3-4H,2H2,1H3
+
+MHS computed rate coefficient using CBS-QB3 method, see _[MRHCBSQB3RRHO] for general algorithm
+employed.  Two differences::
+	1) the k(T) was calculated from 600 to 2000 K, in 200 K increments.
+	2) Low-frequency torsional modes were treated as 1-d separable hindered rotors.  The scans
+		were performed at the B3LYP/6-31G(d) level.
+
+MHS computed the fitted Arrhenius expression to be: k(T) = 6.99e-2 (T/1K)^3.75 exp(-10.89 kcal mol-1 / RT) cm3 mol-1 s-1.
+The pre-exponential was divided by 2 to get the per-H event.  The uncertainty in the E0
+was estimated to be 2 kcal mol-1 (general accuracy of CBS-QB3 calculations) and the uncertainty
+in the A parameter was MRH guess.
+
+RMG previously estimated the kinetics of the titled reaction to be ~10^3 times faster
+than calculations of MHS.
+
+---
+535
+---
+
+Rxn family nodes: H2O2 + O_rad/OneDe
+
+The rate coefficient for this node was taken from node 534 (H2O2 + InChI=1/C4H7O/c1-2-3-4-5/h3-4H,2H2,1H3)
+by analogy: HOOH + *O-C=R.  Discussed with MRH.
+
+----------
+References
+----------
 .. [MRHCBSQB3RRHO] M.R. Harper (mrharper_at_mit_dot_edu or michael.harper.jr_at_gmail_dot_com)
 The geometries of all reactants, products, and the transition state were optimized using the CBS-QB3 calculations.  The zero-point
 energy is that computed by the CBS-QB3 calculations.  The frequencies were computed with B3LYP/CBSB7.
@@ -3569,5 +3625,5 @@ temperatures used were: 300, 331, 370, 419, 482, 568, 692, 885, 1227, 2000 (even
 
 .. [Tsang1990] W. Tsang; "Chemical kinetic database for combustion chemistry. Part IV. Isobutane" J. Phys. Chem. Ref. Data 19 (1990) 1-68
 
-.. [Tsang1991] W. Tsang; "Chemkcai kinetic database for combustion chemistry. Part V. Propene" J. Phys. Chem. Ref. Data 20 (1991) 221-273
+.. [Tsang1991] W. Tsang; "Chemical kinetic database for combustion chemistry. Part V. Propene" J. Phys. Chem. Ref. Data 20 (1991) 221-273
 

@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -33,6 +33,7 @@ package jing.rxn;
 import java.util.*;
 import jing.param.*;
 import jing.mathTool.UncertainDouble;
+import jing.rxnSys.Logger;
 
 //## package jing::rxn 
 
@@ -127,23 +128,32 @@ public class ArrheniusEPKinetics extends ArrheniusKinetics {
 		if (al != 0.0){
 			warning = String.format("Ea computed using Evans-Polanyi dHrxn(298K)=%.1f kcal/mol and alpha=%.2f.", p_Hrxn, al );
 			newComment += " " + warning;
-			System.out.println(warning);
+			Logger.info(warning);
 			newEa = newEa.plus((UncertainDouble)getAlpha().multiply(p_Hrxn));
 		}
 
-		if (Eo>0 && Ea<0) {
-			// Negative barrier estimated by Evans-Polanyi, despite positive intrinsic barrier.
+		if (Eo>=0 && Ea<0) {
+			// Negative barrier estimated by Evans-Polanyi, despite non-negative intrinsic barrier.
 			warning = String.format("Ea raised from %.1f kcal/mol to 0.0.", Ea);
 			newComment += " Warning: " + warning;
-			System.out.println(warning);
+			Logger.info(warning);
 			newEa = newEa.plus((-Ea));
 			Ea = 0.0;
 		}
+		if (Eo<0 && Ea<Eo) {
+			// Negative barrier estimated by Evans-Polanyi is even more negative than negative intrinsic barrier.
+			warning = String.format("Ea raised from %.1f to Eo=%.1f kcal/mol", Ea, Eo);
+			newComment += " Warning: " + warning;
+			Logger.info(warning);
+			newEa = E;
+			Ea = Eo;
+		}
+		
 		if (p_Hrxn>0 && Ea<p_Hrxn){
 			// Reaction is endothermic and the barrier is less than the endothermicity.
 			warning = String.format("Ea raised by %.1f from %.1f to dHrxn(298K)=%.1f kcal/mol.",p_Hrxn-Ea, Ea, p_Hrxn );
 			newComment += " Warning: " + warning;
-			System.out.println(warning);
+			Logger.info(warning);
 			newEa = newEa.plus((p_Hrxn-Ea));
 			Ea = p_Hrxn;
 		}

@@ -13,8 +13,9 @@ Please also refer to our website for how to cite RMG in published work.
 
    introduction
    ../license
-   installation
+   installation/index
    conditionfile
+   liquids
    examples
    GraphicalUserInterface
    kinetics_libraries
@@ -23,7 +24,12 @@ Please also refer to our website for how to cite RMG in published work.
    modification
    oxygen
    thermo
+   transport
+   reactions
+   speciesIDs
    theory/index
+   faq
+   troubleshooting
    ../credits
 
 .. commented out

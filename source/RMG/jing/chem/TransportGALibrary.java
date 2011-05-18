@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -32,6 +32,7 @@ import java.util.*;
 import jing.chemUtil.*;
 import jing.chemParser.*;
 import jing.chemUtil.HierarchyTree;
+import jing.rxnSys.Logger;
 
 public class TransportGALibrary {
 
@@ -58,14 +59,14 @@ public class TransportGALibrary {
 
         String directory = System.getProperty("jing.chem.LJDatabase.pathName");
         if (directory == null) {
-        	System.out.println("undefined system property: jing.chem.LJDatabase.pathName, exit!");
+        	Logger.critical("undefined system property: jing.chem.LJDatabase.pathName, exit!");
         	System.exit(0);
         }
 
         String separator = System.getProperty("file.separator");
         if (!directory.endsWith(separator)) directory = directory + separator;
 
-        System.out.println("\nReading Lennard-Jones database from "+directory);
+        Logger.info("\nReading Lennard-Jones database from "+directory);
 
         String gDictionary = directory + "nonring_Dictionary.txt";
         String gTree = directory + "nonring_Tree.txt";
@@ -77,6 +78,9 @@ public class TransportGALibrary {
         // end pey
 
         read(gDictionary,gTree,gLibrary,ringDictionary,ringTree,ringLibrary);
+
+        Logger.info("");
+
     }
 
     /**
@@ -149,7 +153,8 @@ public class TransportGALibrary {
         	return;
         }
         catch (Exception e) {
-        	System.err.println("Can't read nonring_Dictionary ("+p_fileName+") for transport properties!");
+			Logger.logStackTrace(e);
+        	Logger.critical("Can't read nonring_Dictionary ("+p_fileName+") for transport properties!");
         	System.exit(0);
         }
     }
@@ -160,7 +165,8 @@ public class TransportGALibrary {
         	return;
         }
         catch (Exception e) {
-        	System.err.println("Can't read nonring_Library ("+p_fileName+") for transport properties!");
+			Logger.logStackTrace(e);
+        	Logger.critical("Can't read nonring_Library ("+p_fileName+") for transport properties!");
         	System.exit(0);
         }
     }
@@ -170,8 +176,9 @@ public class TransportGALibrary {
         	groupTree = readStandardTree(p_fileName,groupDictionary,0);
         }
         catch (Exception e) {
-        	System.err.println("Can't read nonring_Tree ("+p_fileName+") for transport properties!");
-        	System.err.println("Error: " + e.getMessage());
+			Logger.logStackTrace(e);
+        	Logger.critical("Can't read nonring_Tree ("+p_fileName+") for transport properties!");
+        	Logger.critical("Error: " + e.getMessage());
         	System.exit(0);
         }
     }
@@ -183,7 +190,8 @@ public class TransportGALibrary {
         	return;
         }
         catch (Exception e) {
-                System.err.println("Can't read ring_Dictionary ("+p_fileName+") for transport properties!\n" + e.getMessage());
+				Logger.logStackTrace(e);
+                Logger.critical("Can't read ring_Dictionary ("+p_fileName+") for transport properties!\n" + e.getMessage());
                 System.exit(0);
         }
     }
@@ -193,8 +201,9 @@ public class TransportGALibrary {
     		ringTree = readStandardTree(p_fileName,ringDictionary,0);
     	}
     	catch (Exception e) {
-                System.err.println("Can't read ring_Tree ("+p_fileName+") for transport properties!");
-                System.err.println("Error: " + e.getMessage());
+                Logger.logStackTrace(e);
+				Logger.critical("Can't read ring_Tree ("+p_fileName+") for transport properties!");
+                Logger.critical("Error: " + e.getMessage());
                 System.exit(0);
         }
     }
@@ -203,17 +212,14 @@ public class TransportGALibrary {
 
     public void readRingLibrary(String p_fileName) {
         try {
-        	// begin pey
         	ringLibrary = readStandardLibrary(p_fileName, ringDictionary);
-        	// end pey
         	return;
         }
         catch (Exception e) {
-        	System.err.println("Can't read ring_Library for transport properties!");
-        	// begin pey
-        	System.err.println("Error: " + e);
+			Logger.logStackTrace(e);
+        	Logger.critical("Can't read ring_Library for transport properties!");
+        	Logger.critical("Error: " + e);
         	System.exit(0);
-        	// end pey
         }
     }
 
@@ -245,6 +251,7 @@ public class TransportGALibrary {
         				fgGraph = ChemParser.readFGGraph(data);
         			}
         			catch (Exception e) {
+						Logger.logStackTrace(e);
         				throw new InvalidFunctionalGroupException(fgname + ": " + e.getMessage());
         			}
         			if (fgGraph == null) throw new InvalidFunctionalGroupException(fgname);

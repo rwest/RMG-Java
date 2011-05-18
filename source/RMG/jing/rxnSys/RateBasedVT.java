@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -104,7 +104,7 @@ public class RateBasedVT implements ValidityTester {
         	Species s = (Species)iter.next();
         	if (ps.unreactedSpeciesFlux[s.getID()] > Rmin) 
             {
-                System.out.println("Exceeded largest permitted flux for convergence (tolerance="+tolerance+"): " + Rmin);
+                Logger.info("Exceeded largest permitted flux for convergence (tolerance="+tolerance+"): " + Rmin);
                 return false;
             }
         	

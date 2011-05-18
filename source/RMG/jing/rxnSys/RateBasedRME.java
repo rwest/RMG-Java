@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -30,20 +30,14 @@
 package jing.rxnSys;
 
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 
 import jing.param.*;
 import jing.rxn.NegativeRateException;
 import jing.rxn.Reaction;
-import jing.rxn.Structure;
 import jing.rxn.TemplateReaction;
 import jing.chem.ChemGraph;
 import jing.chem.Species;
-import jing.rxnSys.SpeciesStatus;
-import jing.chem.SpeciesDictionary;
 //import RMG;
 //## package jing::rxnSys 
 
@@ -54,23 +48,11 @@ import jing.chem.SpeciesDictionary;
 //## class RateBasedRME 
 public class RateBasedRME implements ReactionModelEnlarger {
     
-	protected HashSet includeSpecies = null; //these species are included into the core even if they have very 
-	  										 //low flux.
     // Constructors
     
     public  RateBasedRME() {
     }
     
-	public void addIncludeSpecies(HashSet p_includeSpecies){
-		if (includeSpecies == null) {
-			includeSpecies = p_includeSpecies;
-		}
-		else {
-			System.out.println("IncludeSpecies have already been added!!");
-			System.exit(0);
-		}
-			
-	}
 	
     //9/25/07 gmagoon: added ReactionModel parameter
     //10/30/07 gmagoon: updated parameters to match ReactionModelEnlarger
@@ -112,8 +94,8 @@ public class RateBasedRME implements ReactionModelEnlarger {
 				Species newCoreSpecies = (Species) nextList.get(i);
 				if (cerm.containsAsReactedSpecies(newCoreSpecies)) //throw new InvalidNextCandidateSpeciesException();
 				{
-					System.out.println("Species " + newCoreSpecies.getFullName() +
-									   " is already present in reaction model");
+					Logger.warning("Tried to add species " + newCoreSpecies.getFullName() +
+									   ", but is already present in reaction model (this should be OK if you are running multiple reaction conditions)");
 				} else {
 					
 					double findSpeciesTime = (System.currentTimeMillis() - startTime) / 1000 / 60;
@@ -121,14 +103,13 @@ public class RateBasedRME implements ReactionModelEnlarger {
 					
 					
 					//Global.diagnosticInfo.append(next.getChemkinName() + "\t" + maxflux + "\t" + ((RateBasedVT) ((ReactionSystem) p_reactionSystemList.get(i)).finishController.validityTester).Rmin + "\t" + findSpeciesTime + "\t");
-					System.out.print("\nAdd a new reacted Species:");
-					System.out.println(newCoreSpecies.getFullName());
+					Logger.info("\nAdd a new species to the model core: " + newCoreSpecies.getFullName());
 					Temperature temp = new Temperature(298, "K");
 					double H = newCoreSpecies.calculateH(temp);
 					double S = newCoreSpecies.calculateS(temp);
 					double G = newCoreSpecies.calculateG(temp);
 					double Cp = newCoreSpecies.calculateCp(temp);
-					System.out.println("Thermo of species at 298K (H, S, G, Cp, respectively)\t" + String.valueOf(H) + '\t' + String.valueOf(S) + '\t' + String.valueOf(G) + '\t' + String.valueOf(Cp));
+					Logger.debug("Thermo of species at 298K (H, S, G, Cp, respectively)\t" + String.valueOf(H) + '\t' + String.valueOf(S) + '\t' + String.valueOf(G) + '\t' + String.valueOf(Cp));
 
 					cerm.moveFromUnreactedToReactedSpecies(newCoreSpecies);
 					cerm.moveFromUnreactedToReactedReaction();
@@ -150,7 +131,7 @@ public class RateBasedRME implements ReactionModelEnlarger {
 					ReactionSystem rxnSystem = (ReactionSystem) p_reactionSystemList.get(i);
 					// Check Reaction Library
 				if(rxnSystem.getLibraryReactionGenerator().getReactionLibrary() != null){
-					System.out.println("Checking Reaction Library "+rxnSystem.getLibraryReactionGenerator().getReactionLibrary().getName()+" for reactions of "+newCoreSpecies.getFullName()+" with the core.");
+					Logger.info("Checking Reaction Library "+rxnSystem.getLibraryReactionGenerator().getReactionLibrary().getName()+" for reactions of "+newCoreSpecies.getFullName()+" with the core.");
 					// At this point the core (cerm.getReactedSpeciesSet()) already contains newCoreSpecies, so we can just react the entire core.
 					LinkedHashSet newReactionSet = rxnSystem.getLibraryReactionGenerator().react(cerm.getReactedSpeciesSet());
 					
@@ -159,12 +140,12 @@ public class RateBasedRME implements ReactionModelEnlarger {
 					while(ReactionIter.hasNext()){
 						Reaction current_reaction = (Reaction)ReactionIter.next();
 						if (current_reaction.contains(newCoreSpecies)) {
-							System.out.println("Library Reaction: " + current_reaction.toString() );
+							Logger.info("Library Reaction: " + current_reaction.toString() );
 						}
 					}
 
 					// Calls in Reaction Model Generator and adds it to Reaction Set ( if duplicate reaction is found it is not added I think ) 
-					System.out.println("Generating reactions using reaction family templates.");
+					Logger.info("Generating reactions using reaction family templates.");
 					// Add reactions found from reaction template to current reaction set
 					newReactionSet.addAll(((ReactionSystem) p_reactionSystemList.get(i)).getReactionGenerator().react(cerm.getReactedSpeciesSet(), newCoreSpecies, "All"));
 					
@@ -179,7 +160,7 @@ public class RateBasedRME implements ReactionModelEnlarger {
 				}
 				else{
 					// When no Reaction Library is present
-					System.out.println("Generating reactions using reaction family templates.");
+					Logger.info("Generating reactions using reaction family templates.");
 					newReactionSet_nodup = rxnSystem.getReactionGenerator().react(cerm.getReactedSpeciesSet(),newCoreSpecies,"All");
 				}
 					
@@ -212,20 +193,6 @@ public class RateBasedRME implements ReactionModelEnlarger {
     
     
     
-    public boolean presentInIncludedSpecies(Species p_species){
-		Iterator iter = includeSpecies.iterator();
-		while (iter.hasNext()){
-			Species spe = (Species)iter.next();
-			Iterator isomers = spe.getResonanceIsomers();
-			while (isomers.hasNext()){
-				ChemGraph cg = (ChemGraph)isomers.next();
-				if (cg.equals(p_species.getChemGraph())) 
-					return true;
-			}
-		}
-		return false;
-	}
-	
     //## operation getNextCandidateSpecies(CoreEdgeReactionModel,PresentStatus) 
     public Species getNextCandidateSpecies(CoreEdgeReactionModel p_reactionModel, PresentStatus p_presentStatus, String maxflux) {
         //#[ operation getNextCandidateSpecies(CoreEdgeReactionModel,PresentStatus) 
@@ -233,8 +200,6 @@ public class RateBasedRME implements ReactionModelEnlarger {
          
         Species maxSpecies = null;
         double maxFlux = 0;
-        Species maxIncludedSpecies = null;
-		double maxIncludedFlux = 0;
 		
         Iterator iter = unreactedSpecies.iterator();
         while (iter.hasNext()) {
@@ -243,27 +208,13 @@ public class RateBasedRME implements ReactionModelEnlarger {
 			//System.out.println(p_presentStatus.unreactedSpeciesFlux[83]);
 			//System.exit(0);
 			double thisFlux = Math.abs(p_presentStatus.unreactedSpeciesFlux[us.getID()]);
-			if (includeSpecies != null && includeSpecies.contains(us)) {
-				if (thisFlux > maxIncludedFlux) {
-	        		maxIncludedFlux = thisFlux;
-	        		maxIncludedSpecies = us;
-	        	}
-			}
-			else {
 				if (thisFlux > maxFlux) {
 	        		maxFlux = thisFlux;
 	        		maxSpecies = us;
 	        	}
-			}
         	
         }
 		
-		if (maxIncludedSpecies != null){
-			System.out.println("Instead of "+maxSpecies.toChemkinString()+" with flux "+ maxFlux + " "+ maxIncludedSpecies.toChemkinString() +" with flux " + maxIncludedFlux);
-			maxFlux = maxIncludedFlux;
-			maxSpecies = maxIncludedSpecies;
-			includeSpecies.remove(maxIncludedSpecies);
-		}
 		
         maxflux = ""+maxFlux;
         if (maxSpecies == null) throw new NullPointerException();
@@ -321,14 +272,13 @@ public class RateBasedRME implements ReactionModelEnlarger {
         	
         }
 		
-        System.out.print("Time: ");
-        System.out.println(p_presentStatus.getTime());
-        System.out.println("Unreacted species " + maxSpecies.getFullName() + " has highest flux: " + String.valueOf(maxFlux));
-		System.out.println("The total number of unreacted reactions with this species is "+reactionWithSpecies+". Significant ones are:");
+        Logger.info(String.format("Time: %10.4e s", p_presentStatus.getTime().getTime()));
+        Logger.info(String.format("Edge species %s has highest flux: %10.4e mol/cm^3*s", maxSpecies.getFullName(), maxFlux));
+		Logger.verbose("The total number of edge reactions with this species is "+reactionWithSpecies+". Significant ones are:");
 		Iterator reactionIter = significantReactions.keySet().iterator();
 		while (reactionIter.hasNext()){
 			Reaction r = (Reaction)reactionIter.next();
-			System.out.println(" "+r.getStructure().toChemkinString(r.hasReverseReaction())+"\t"+significantReactions.get(r));
+            Logger.verbose(String.format("    %s    %9.3e mol/cm^3*s", r.getStructure().toChemkinString(r.hasReverseReaction()), significantReactions.get(r)));
 		}
         
         return maxSpecies;

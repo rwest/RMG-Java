@@ -14,6 +14,10 @@ Current Developers: (rmg_dev@mit.edu)
 
 - Joshua W. Allen
 
+- Caleb A. Class
+
+- Connie Gao
+
 - Michael R. Harper
 
 - Amrit Jalan
@@ -42,7 +46,7 @@ Previous Developers:
 
 - Dr. David M. Matheu
 
-- Sumathy Raman
+- Dr. Sumathy Raman
 
 - Dr. Joanna Yu
 
@@ -62,4 +66,24 @@ RMGVE Developer:
 
 - John Robotham
 
+Special thanks for helpful error reports:
 
+- Rajesh D. Parmar
+
+- Dr. Seyed-Abdolreza Seyed-Reihani
+
+- Dr. Yu Shi
+
+- Dr. Yushi Suzuki
+
+- Aaron Vandeputte
+
+- Dr. Stijn Vranckx
+
+- Dr. Steven Zabarnick
+
+*************
+How to cite
+*************
+
+To cite RMG, please refer to this website: William H. Green, Joshua W. Allen, Robert W. Ashcraft, Gregory J. Beran, Caleb A. Class, Connie Gao, C. Franklin Goldsmith, Michael R. Harper, Amrit Jalan, Gregory R. Magoon, David M. Matheu, Shamel S. Merchant, Jeffrey D. Mo, Sarah Petway, Sumathy Raman, Sandeep Sharma, Jing Song, Kevin M. Van Geem, John Wen, Richard H. West, Andrew Wong, Hsi-Wu Wong, Paul E. Yelvington, Joanna Yu; "RMG - Reaction Mechanism Generator v3.3", 2011, http://rmg.sourceforge.net/

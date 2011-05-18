@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -35,7 +35,7 @@ import java.util.*;
 
 import jing.chemUtil.*;
 import jing.chemParser.*;
-
+import jing.rxnSys.Logger;
 
 /**
  *
@@ -134,6 +134,7 @@ public class PrimaryAbrahamLibrary {
 		    return library;
 		}
 		catch (Exception e){
+			Logger.logStackTrace(e);
 		   throw new IOException("Can't read Abraham descriptors in primary Abraham library!");
 		}
 	}

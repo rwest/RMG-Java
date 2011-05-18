@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import jing.rxnSys.Logger;
 
 //quantum mechanics thermo property estimator; analog of GATP
 public class QMTP implements GeneralGAPP {
@@ -75,7 +76,7 @@ public class QMTP implements GeneralGAPP {
         //#[ operation generateThermoData(ChemGraph)
         //first, check for thermo data in the primary thermo library and library (?); if it is there, use it
         ThermoData result = primaryLibrary.getThermoData(p_chemGraph.getGraph());
-        //System.out.println(result);
+        //Logger.info(result);
         if (result != null) {
         	p_chemGraph.fromprimarythermolibrary = true;
         	return result;
@@ -140,7 +141,7 @@ public class QMTP implements GeneralGAPP {
    //         result = generateThermoData(g);//I'm not sure what GATP does, but this recursive calling will use HBIs on saturated species if it exists in PrimaryThermoLibrary
             //check the primary thermo library for the saturated graph
             result = primaryLibrary.getThermoData(p_chemGraph.getGraph());
-            //System.out.println(result);
+            //Logger.info(result);
             if (result != null) {
         	p_chemGraph.fromprimarythermolibrary = true;
             }
@@ -167,10 +168,10 @@ public class QMTP implements GeneralGAPP {
            	p_chemGraph.resetThermoSite(node);
            	ThermoGAValue thisGAValue = thermoLibrary.findRadicalGroup(p_chemGraph);
            	if (thisGAValue == null) {
-           		System.err.println("Radical group not found: " + node.getID());
+           		Logger.error("Radical group not found: " + node.getID());
            	}
            	else {
-           		//System.out.println(node.getID() + " radical correction: " + thisGAValue.getName() + "  "+thisGAValue.toString());
+           		//Logger.info(node.getID() + " radical correction: " + thisGAValue.getName() + "  "+thisGAValue.toString());
            		result.plus(thisGAValue);
                 }
 
@@ -216,7 +217,7 @@ public class QMTP implements GeneralGAPP {
             String [] InChInames = getQMFileName(p_chemGraph);//determine the filename (InChIKey) and InChI with appended info for triplets, etc.
             String name = InChInames[0];
             String InChIaug = InChInames[1];
-            System.out.println("HBI-based thermo for " + name + "("+InChIaug+"): "+ result.toString());//print result, at least for debugging purposes
+            Logger.info("HBI-based thermo for " + name + "("+InChIaug+"): "+ result.toString());//print result, at least for debugging purposes
         }
         else{
             result = generateQMThermoData(p_chemGraph);
@@ -279,29 +280,31 @@ public class QMTP implements GeneralGAPP {
 			successFlag = runMOPAC(name, directory);
 		    }
 		    else{
-			System.out.println("Unsupported quantum chemistry program");
+			Logger.critical("Unsupported quantum chemistry program");
 			System.exit(0);
 		    }
 		    //new IF block to check success
 		    if(successFlag==1){
-			System.out.println("Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") succeeded.");
+			Logger.info("Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") succeeded.");
 		    }
 		    else if(successFlag==0){
 			if(attemptNumber==maxAttemptNumber){//if this is the last possible attempt, and the calculation fails, exit with an error message
 			    if(qmProgram.equals("both")){ //if we are running with "both" option and all keywords fail, try with Gaussian
 				qmProgram = "gaussian03";
-				System.out.println("*****Final MOPAC attempt (#" + maxAttemptNumber + ") on species " + name + " ("+InChIaug+") failed. Trying to use Gaussian.");
+				Logger.info("*****Final MOPAC attempt (#" + maxAttemptNumber + ") on species " + name + " ("+InChIaug+") failed. Trying to use Gaussian.");
 				attemptNumber=0;//this needs to be 0 so that when we increment attemptNumber below, it becomes 1 when returning to the beginning of the for loop
 				maxAttemptNumber=1;
 			    }
 			    else{
-				System.out.println("*****Final attempt (#" + maxAttemptNumber + ") on species " + name + " ("+InChIaug+") failed.");
-				System.out.print(p_chemGraph.toString());
+				Logger.info("*****Final attempt (#" + maxAttemptNumber + ") on species " + name + " ("+InChIaug+") failed.");
+				Logger.critical(p_chemGraph.toString());
 			        System.exit(0);
-			//	return new ThermoData(1000,0,0,0,0,0,0,0,0,0,0,0,"failed calculation");
+			//	ThermoData temp = new ThermoData(1000,0,0,0,0,0,0,0,0,0,0,0,"failed calculation");
+			//	temp.setSource("***failed calculation***");
+			//	return temp;
 			    }
 			}
-			System.out.println("*****Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") failed. Will attempt a new keyword.");
+			Logger.info("*****Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") failed. Will attempt a new keyword.");
 			attemptNumber++;//try again with new keyword
 		    }
 		}
@@ -316,7 +319,7 @@ public class QMTP implements GeneralGAPP {
 		result = parseMopacPM3(name, directory, p_chemGraph);
 	    }
 	    else{
-		System.out.println("Unexpected situation in QMTP thermo estimation");
+		Logger.critical("Unexpected situation in QMTP thermo estimation");
 		System.exit(0);
 	    }
 	}
@@ -340,24 +343,26 @@ public class QMTP implements GeneralGAPP {
 		    successFlag = runMM4(name, directory);
 		    //new IF block to check success
 		    if(successFlag==1){
-			System.out.println("Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") succeeded.");
+			Logger.info("Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") succeeded.");
 			//run rotor calculations if necessary
 			int rotors = p_chemGraph.getInternalRotor();
 			if(useHindRot && rotors > 0){
 			    //we should re-run scans even if pre-existing scans exist because atom numbering may change from case to case; a better solution would be to check for stored CanTherm output and use that if available
-			    System.out.println("Running rotor scans on "+name+"...");
+			    Logger.info("Running rotor scans on "+name+"...");
 			    dihedralMinima = createMM4RotorInput(name, directory, p_chemGraph, rotors);//we don't worry about checking InChI here; if there is an InChI mismatch it should be caught
 			    runMM4Rotor(name, directory, rotors);
 			}
 		    }
 		    else if(successFlag==0){
 			if(attemptNumber==maxAttemptNumber){//if this is the last possible attempt, and the calculation fails, exit with an error message
-				System.out.println("*****Final attempt (#" + maxAttemptNumber + ") on species " + name + " ("+InChIaug+") failed.");
-				System.out.print(p_chemGraph.toString());
+				Logger.info("*****Final attempt (#" + maxAttemptNumber + ") on species " + name + " ("+InChIaug+") failed.");
+				Logger.critical(p_chemGraph.toString());
 			        System.exit(0);
-				//return new ThermoData(1000,0,0,0,0,0,0,0,0,0,0,0,"failed calculation");
+			//	ThermoData temp = new ThermoData(1000,0,0,0,0,0,0,0,0,0,0,0,"failed calculation");
+			//	temp.setSource("***failed calculation***");
+			//	return temp;
 			}
-			System.out.println("*****Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") failed. Will attempt a new keyword.");
+			Logger.info("*****Attempt #"+attemptNumber + " on species " + name + " ("+InChIaug+") failed. Will attempt a new keyword.");
 			attemptNumber++;//try again with new keyword
 		    }
 		}
@@ -447,8 +452,6 @@ public class QMTP implements GeneralGAPP {
 	    }
 	    Process pythonProc = Runtime.getRuntime().exec(command, null, runningdir);
             String killmsg= "Python process for "+twoDmolFile.getName()+" did not complete within 120 seconds, and the process was killed. File was probably not written.";//message to print if the process times out
-            Thread timeoutThread = new TimeoutKill(pythonProc, killmsg, 120000L); //create a timeout thread to handle cases where the UFF optimization get's locked up (cf. Ch. 16 of "Ivor Horton's Beginning Java 2: JDK 5 Edition"); once we use the updated version of RDKit, we should be able to get rid of this
-            timeoutThread.start();//start the thread
             //check for errors and display the error if there is one
             InputStream is = pythonProc.getErrorStream();
             InputStreamReader isr = new InputStreamReader(is);
@@ -456,24 +459,25 @@ public class QMTP implements GeneralGAPP {
             String line=null;
             while ( (line = br.readLine()) != null) {
                     line = line.trim();
-                    System.err.println(line);
+                    Logger.error(line);
                     flag=1;
             }
             //if there was an error, indicate the file and InChI
             if(flag==1){
-                System.out.println("RDKit received error (see above) on " + twoDmolFile.getName()+". File was probably not written.");
+                Logger.info("RDKit received error (see above) on " + twoDmolFile.getName()+". File was probably not written.");
             }
             int exitValue = pythonProc.waitFor();
-            if(timeoutThread.isAlive())//if the timeout thread is still alive (indicating that the process has completed in a timely manner), stop the timeout thread
-                timeoutThread.interrupt();
+	    pythonProc.getInputStream().close();
+	    pythonProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
             String err = "Error in running RDKit Python process \n";
             err += e.toString();
-            e.printStackTrace();
+			Logger.critical(err);
             System.exit(0);
         }
         
@@ -521,18 +525,19 @@ public class QMTP implements GeneralGAPP {
 //                //compare inchi3d with input inchi and print a message if they don't match
 //                if(!inchi3d.equals(inchiString)){
 //                    if(inchi3d.startsWith(inchiString)&&inchiString.length()>10){//second condition ensures 1/C does not match 1/CH4; 6 characters for InChI=, 2 characters for 1/, 2 characters for atom layer
-//                        System.out.println("(probably minor) For File: "+ molfilename+" , 3D InChI (" + inchi3d+") begins with, but does not match original InChI ("+inchiString+"). SMILES string: "+ smilesString); 
+//                        Logger.info("(probably minor) For File: "+ molfilename+" , 3D InChI (" + inchi3d+") begins with, but does not match original InChI ("+inchiString+"). SMILES string: "+ smilesString);
 //                        
 //                    }
 //                    else{
-//                        System.out.println("For File: "+ molfilename+" , 3D InChI (" + inchi3d+") does not match original InChI ("+inchiString+"). SMILES string: "+ smilesString);
+//                        Logger.info("For File: "+ molfilename+" , 3D InChI (" + inchi3d+") does not match original InChI ("+inchiString+"). SMILES string: "+ smilesString);
 //                    }
 //                }
 //            }
 //            catch (Exception e) {
+//					Logger.logStackTrace(e);
 //                String err = "Error in running InChI process \n";
 //                err += e.toString();
-//                e.printStackTrace();
+//                Logger.critical(err);
 //                System.exit(0);
 //            }
 //        }
@@ -586,7 +591,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in writing inputkeywords.txt \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         
@@ -617,6 +622,8 @@ public class QMTP implements GeneralGAPP {
 		//do nothing
             }
             int exitValue = babelProc.waitFor();
+	    babelProc.getErrorStream().close();
+	    babelProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
@@ -624,7 +631,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in running OpenBabel MOL to GJF process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         return maxAttemptNumber;
@@ -688,7 +695,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in writing MM4 script file\n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
 
@@ -721,6 +728,8 @@ public class QMTP implements GeneralGAPP {
 		//do nothing
             }
             int exitValue = molecoorProc.waitFor();
+	    molecoorProc.getErrorStream().close();
+	    molecoorProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
@@ -728,7 +737,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in running MoleCoor MOL to .MM4 process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         return maxAttemptNumber;
@@ -758,7 +767,7 @@ public class QMTP implements GeneralGAPP {
 	catch(Exception e){
 		String err = "Error in reading .mm4opt file\n";
 		err += e.toString();
-		e.printStackTrace();
+		Logger.logStackTrace(e);
 		System.exit(0);
 	}
 	String[] lines = mm4optContents.split("[\\r?\\n]+");//split by newlines, excluding blank lines; cf. http://stackoverflow.com/questions/454908/split-java-string-by-new-line
@@ -816,7 +825,7 @@ public class QMTP implements GeneralGAPP {
 	    catch(Exception e){
 		String err = "Error in writing MM4 script files\n";
 		err += e.toString();
-		e.printStackTrace();
+		Logger.logStackTrace(e);
 		System.exit(0);
 	    }
 
@@ -849,7 +858,7 @@ public class QMTP implements GeneralGAPP {
 	    catch(Exception e){
 		String err = "Error in writing MM4 rotor input file\n";
 		err += e.toString();
-		e.printStackTrace();
+		Logger.logStackTrace(e);
 		System.exit(0);
 	    }
 	}
@@ -887,7 +896,7 @@ public class QMTP implements GeneralGAPP {
         else if (multiplicity==8) return "uhf octet";
         else if (multiplicity==9) return "uhf nonet";
         else{
-            System.out.println("Invalid multiplicity encountered: "+multiplicity);
+            Logger.critical("Invalid multiplicity encountered: "+multiplicity);
             System.exit(0);
         }
         
@@ -970,7 +979,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in writing inputkeywords.txt \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         
@@ -984,14 +993,16 @@ public class QMTP implements GeneralGAPP {
         try{ 
             File runningdir=new File(directory);
             String inpKeyStrTopCombined = inpKeyStrBoth + inpKeyStrTop;
-	    String command = null;
+	    Process babelProc = null;
 	    if(attemptNumber<=scriptAttempts){//use UFF-refined coordinates
-		command = "babel -imol "+ p_molfile.getPath()+ " -omop " + name+".mop -xk \"" + inpKeyStrTopCombined + "\" --title \""+InChIaug+"\"";
+		String[] command = { "babel", "-imol", p_molfile.getPath(), "-xk", inpKeyStrTopCombined,"--title", InChIaug,"-omop", name+".mop" };
+		babelProc = Runtime.getRuntime().exec(command, null, runningdir);
 	    }
 	    else{//use the crude coordinates
-		command = "babel -imol "+ p_molfile.getCrudePath()+ " -omop " + name+".mop -xk \"" + inpKeyStrTopCombined + "\" --title \""+InChIaug+"\"";
+		String[] command = { "babel", "-imol", p_molfile.getCrudePath(), "-xk",  inpKeyStrTopCombined,"--title", InChIaug,"-omop", name+".mop" };
+		babelProc = Runtime.getRuntime().exec(command, null, runningdir);
 	    }
-	    Process babelProc = Runtime.getRuntime().exec(command, null, runningdir);
+	    
             //read in output
             InputStream is = babelProc.getInputStream();
             InputStreamReader isr = new InputStreamReader(is);
@@ -1001,6 +1012,8 @@ public class QMTP implements GeneralGAPP {
                 //do nothing
             }
             int exitValue = babelProc.waitFor();
+	    babelProc.getErrorStream().close();
+	    babelProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
@@ -1014,7 +1027,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in running OpenBabel MOL to MOP process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         return maxAttemptNumber;
@@ -1039,14 +1052,16 @@ public class QMTP implements GeneralGAPP {
             String line=null;
             while ( (line = br.readLine()) != null) {
                     line = line.trim();
-                    System.err.println(line);
+                    Logger.error(line);
                     flag=1;
             }
             //if there was an error, indicate that an error was obtained
             if(flag==1){
-                System.out.println("Gaussian process received error (see above) on " + name);
+                Logger.info("Gaussian process received error (see above) on " + name);
             }
             int exitValue = gaussianProc.waitFor();
+	    gaussianProc.getInputStream().close();
+	    gaussianProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
@@ -1054,7 +1069,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in running Gaussian process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         //look in the output file to check for the successful termination of the Gaussian calculation
@@ -1070,11 +1085,11 @@ public class QMTP implements GeneralGAPP {
                 if (line.startsWith(" Error termination ")){
                     failureFlag=1;
                     errorLine = line.trim();
-                    System.out.println("*****Error in Gaussian log file: "+errorLine);//print the error (note that in general, I think two lines will be printed)
+                    Logger.info("*****Error in Gaussian log file: "+errorLine);//print the error (note that in general, I think two lines will be printed)
                 }
                 else if (line.startsWith(" ******")){//also look for imaginary frequencies
                     if (line.contains("imaginary frequencies")){
-                        System.out.println("*****Imaginary freqencies found:");
+                        Logger.info("*****Imaginary freqencies found:");
                         failureFlag=1;
                     }
                 }
@@ -1091,7 +1106,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in reading Gaussian log file \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
 	//if the complete flag is still 0, the process did not complete and is a failure
@@ -1125,7 +1140,7 @@ public class QMTP implements GeneralGAPP {
 //	    while ( (line = br.readLine()) != null) {
 //		line = line.trim();
 //		if(!line.equals("STOP   statement executed")){//string listed here seems to be typical
-//		    System.err.println(line);
+//		    Logger.error(line);
 //		    flag=1;
 //		}
 //	    }
@@ -1138,11 +1153,13 @@ public class QMTP implements GeneralGAPP {
 	    }
 	    //if there was an error, indicate that an error was obtained
 //	    if(flag==1){
-//		System.out.println("MM4 process received error (see above) on " + name);
+//		Logger.info("MM4 process received error (see above) on " + name);
 //	    }
 
 
             int exitValue = mm4Proc.waitFor();
+	    mm4Proc.getErrorStream().close();
+	    mm4Proc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
@@ -1150,7 +1167,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in running MM4 process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         //look in the output file to check for the successful termination of the MM4 calculation (cf. successfulMM4ResultExistsQ)
@@ -1170,16 +1187,16 @@ public class QMTP implements GeneralGAPP {
                     else if (trimLine.endsWith("imaginary frequencies,")){//read the number of imaginary frequencies and make sure it is zero
                         String[] split = trimLine.split("\\s+");
 			if (Integer.parseInt(split[3])>0){
-			    System.out.println("*****Imaginary freqencies found:");
+			    Logger.info("*****Imaginary freqencies found:");
 			    failureOverrideFlag=1;
 			}
                     }
 		    else if (trimLine.contains("             0.0     (fir )")){
 			if (useCanTherm){//zero frequencies are only acceptable when CanTherm is used
-			    System.out.println("*****Warning: zero freqencies found (values lower than 7.7 cm^-1 are rounded to zero in MM4 output); CanTherm should hopefully correct this:");
+			    Logger.info("*****Warning: zero freqencies found (values lower than 7.7 cm^-1 are rounded to zero in MM4 output); CanTherm should hopefully correct this:");
 			}
 			else{
-			    System.out.println("*****Zero freqencies found:");
+			    Logger.info("*****Zero freqencies found:");
 			    failureOverrideFlag=1;
 			}
 		    }
@@ -1191,7 +1208,7 @@ public class QMTP implements GeneralGAPP {
             catch(Exception e){
                 String err = "Error in reading MM4 output file \n";
                 err += e.toString();
-                e.printStackTrace();
+                Logger.logStackTrace(e);
                 System.exit(0);
             }
 	}
@@ -1224,7 +1241,7 @@ public class QMTP implements GeneralGAPP {
     //	    while ( (line = br.readLine()) != null) {
     //		line = line.trim();
     //		if(!line.equals("STOP   statement executed")){//string listed here seems to be typical
-    //		    System.err.println(line);
+    //		    Logger.error(line);
     //		    flag=1;
     //		}
     //	    }
@@ -1237,11 +1254,13 @@ public class QMTP implements GeneralGAPP {
 		}
 		//if there was an error, indicate that an error was obtained
     //	    if(flag==1){
-    //		System.out.println("MM4 process received error (see above) on " + name);
+    //		Logger.info("MM4 process received error (see above) on " + name);
     //	    }
 
 
 		int exitValue = mm4Proc.waitFor();
+		mm4Proc.getErrorStream().close();
+		mm4Proc.getOutputStream().close();
 		br.close();
 		isr.close();
 		is.close();
@@ -1249,7 +1268,7 @@ public class QMTP implements GeneralGAPP {
 	    catch(Exception e){
 		String err = "Error in running MM4 rotor process \n";
 		err += e.toString();
-		e.printStackTrace();
+		Logger.logStackTrace(e);
 		System.exit(0);
 	    }
 	}
@@ -1276,14 +1295,16 @@ public class QMTP implements GeneralGAPP {
             String line=null;
             while ( (line = br.readLine()) != null) {
                     line = line.trim();
-                    System.err.println(line);
+                    Logger.error(line);
                     flag=1;
             }
             //if there was an error, indicate that an error was obtained
             if(flag==1){
-                System.out.println("MOPAC process received error (see above) on " + name);
+                Logger.info("MOPAC process received error (see above) on " + name);
             }
             int exitValue = mopacProc.waitFor();
+	    mopacProc.getInputStream().close();
+	    mopacProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
@@ -1291,7 +1312,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in running MOPAC process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         //look in the output file to check for the successful termination of the calculation (this is a trimmed down version of what appears in successfulMOPACResultExistsQ (it doesn't have the InChI check)
@@ -1314,7 +1335,7 @@ public class QMTP implements GeneralGAPP {
 //         ENERGY IS NOT MEANINGFULL. ZERO POINT ENERGY PRINTED
 //         DOES NOT INCLUDE THE  2 IMAGINARY FREQUENCIES
                     else if (trimLine.endsWith("IMAGINARY FREQUENCIES")){
-                        System.out.println("*****Imaginary freqencies found:");
+                        Logger.info("*****Imaginary freqencies found:");
                         failureOverrideFlag=1;
                     }
                     else if (trimLine.equals("EXCESS NUMBER OF OPTIMIZATION CYCLES")){//exceeding max cycles error
@@ -1331,7 +1352,7 @@ public class QMTP implements GeneralGAPP {
             catch(Exception e){
                 String err = "Error in reading MOPAC output file \n";
                 err += e.toString();
-                e.printStackTrace();
+                Logger.logStackTrace(e);
                 System.exit(0);
             }
         }
@@ -1459,14 +1480,15 @@ public class QMTP implements GeneralGAPP {
 //            int exitValue = cclibProc.waitFor();
 //        }
 //        catch (Exception e) {
+//				Logger.logStackTrace(e);
 //            String err = "Error in running ccLib Python process \n";
 //            err += e.toString();
-//            e.printStackTrace();
+//            Logger.critical(err);
 //            System.exit(0);
 //        } 
 //   
 //        ThermoData result = calculateThermoFromPM3Calc(natoms, atomicNumber, x_coor, y_coor, z_coor, energy, molmass, freqs, rotCons_1, rotCons_2, rotCons_3, gdStateDegen);
-//        System.out.println("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
+//        Logger.info("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
 //        return result;
         
         String command = null;
@@ -1483,7 +1505,8 @@ public class QMTP implements GeneralGAPP {
 	    command=command.concat(" "+ System.getenv("RMG")+"/source");//this will pass $RMG/source to the script (in order to get the appropriate path for importing
 	}
 	ThermoData result = getPM3MM4ThermoDataUsingCCLib(name, directory, p_chemGraph, command);
-        System.out.println("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
+        result.setSource("Gaussian PM3 calculation");
+	Logger.info("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
         return result;
     }
 
@@ -1494,7 +1517,8 @@ public class QMTP implements GeneralGAPP {
 	command=command.concat(logfilepath);
 	command=command.concat(" "+ System.getenv("RMG")+"/source");//this will pass $RMG/source to the script (in order to get the appropriate path for importing
         ThermoData result = getPM3MM4ThermoDataUsingCCLib(name, directory, p_chemGraph, command);
-        System.out.println("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
+        result.setSource("MM4 calculation");
+	Logger.info("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
         return result;
     }
 
@@ -1580,7 +1604,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in writing CanTherm input \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
 	//4 call CanTherm 
@@ -1597,6 +1621,8 @@ public class QMTP implements GeneralGAPP {
 	    }
 
             int exitValue = canProc.waitFor();
+	    canProc.getErrorStream().close();
+	    canProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
@@ -1604,7 +1630,7 @@ public class QMTP implements GeneralGAPP {
         catch(Exception e){
             String err = "Error in running CanTherm process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
         return qmdata;
@@ -1645,12 +1671,13 @@ public class QMTP implements GeneralGAPP {
 	catch(Exception e){
             String err = "Error in reading CanTherm .canout file \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.logStackTrace(e);
             System.exit(0);
         }
 
 	ThermoData result = new ThermoData(Hf298,S298,Cp300,Cp400,Cp500,Cp600,Cp800,Cp1000,Cp1500,3,1,1,"MM4 calculation; includes CanTherm analysis of force-constant matrix");//this includes rough estimates of uncertainty
-        System.out.println("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
+        result.setSource("MM4 calculation with CanTherm analysis");
+	Logger.info("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
 
 	return result;
     }
@@ -1671,7 +1698,8 @@ public class QMTP implements GeneralGAPP {
 	    command=command.concat(" "+ System.getenv("RMG")+"/source");//this will pass $RMG/source to the script (in order to get the appropriate path for importing
 	}
         ThermoData result = getPM3MM4ThermoDataUsingCCLib(name, directory, p_chemGraph, command);
-        System.out.println("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
+        result.setSource("MOPAC PM3 calculation");
+	Logger.info("Thermo for " + name + ": "+ result.toString());//print result, at least for debugging purposes
         return result;
     }
     
@@ -1786,14 +1814,17 @@ public class QMTP implements GeneralGAPP {
                 //do nothing (there shouldn't be any more information, but this is included to get all the output)
             }
             int exitValue = cclibProc.waitFor();
+	    cclibProc.getErrorStream().close();
+	    cclibProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
             String err = "Error in running ccLib Python process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.critical(err);
             System.exit(0);
         } 
    
@@ -1922,7 +1953,7 @@ public class QMTP implements GeneralGAPP {
         else if (pointGroup.equals("Ih")) sigmaCorr=-Math.log(60.);//rot. sym. = 60
         else if (pointGroup.equals("Kh")) sigmaCorr=0;//arbitrarily set to zero...one could argue that it is infinite; apparently this is the point group of a single atom (cf. http://www.cobalt.chem.ucalgary.ca/ps/symmetry/tests/G_Kh); this should not have a rotational partition function, and we should not use the symmetry correction in this case
         else{//this point should not be reached, based on checks performed in determinePointGroupUsingSYMMETRYProgram
-            System.out.println("Unrecognized point group: "+ pointGroup);
+            Logger.critical("Unrecognized point group: "+ pointGroup);
             System.exit(0);
         }
 	
@@ -1936,7 +1967,7 @@ public class QMTP implements GeneralGAPP {
     //public String determinePointGroupUsingSYMMETRYProgram(String geom, double finalTol){
     public String determinePointGroupUsingSYMMETRYProgram(String geom){
         int attemptNumber = 1;
-        int maxAttemptNumber = 2;
+        int maxAttemptNumber = 4;
         boolean pointGroupFound=false;
         //write the input file
         try {
@@ -1947,7 +1978,7 @@ public class QMTP implements GeneralGAPP {
         } catch (IOException e) {
             String err = "Error writing input file for point group calculation";
             err += e.toString();
-            System.out.println(err);
+            Logger.critical(err);
             System.exit(0);
         }
         String result = "";
@@ -1960,16 +1991,26 @@ public class QMTP implements GeneralGAPP {
                 if (System.getProperty("os.name").toLowerCase().contains("windows")){//the Windows case where the precompiled executable seems to need to be called from a batch script
 		    if(attemptNumber==1) command = "\""+System.getProperty("RMG.workingDirectory")+"/scripts/symmetryDefault2.bat\" "+qmfolder+ "symminput.txt";//12/1/09 gmagoon: switched to use slightly looser criteria of 0.02 rather than 0.01 to handle methylperoxyl radical result from MOPAC
 		    else if (attemptNumber==2) command = "\""+System.getProperty("RMG.workingDirectory")+"/scripts/symmetryLoose.bat\" " +qmfolder+ "symminput.txt";//looser criteria (0.1 instead of 0.01) to properly identify C2v group in VBURLMBUVWIEMQ-UHFFFAOYAVmult5 (InChI=1/C3H4O2/c1-3(2,4)5/h1-2H2/mult5) MOPAC result; C2 and sigma were identified with default, but it should be C2 and sigma*2
+		    else if (attemptNumber==3) command = "\""+System.getProperty("RMG.workingDirectory")+"/scripts/symmetryLoose2.bat\" " +qmfolder+ "symminput.txt";//looser criteria to properly identify D2d group in XXHDHKZTASMVSX-UHFFFAOYAM
+		    else if (attemptNumber==4){
+			Logger.error("*****WARNING****: Using last-resort symmetry estimation options; symmetry may be underestimated");
+			command = "\""+System.getProperty("RMG.workingDirectory")+"/scripts/symmetryLastResort.bat\" " +qmfolder+ "symminput.txt";//last resort criteria to avoid crashing (this will likely result in identification of C1 point group)
+		    }
 		    else{
-			System.out.println("Invalid attemptNumber: "+ attemptNumber);
+			Logger.critical("Invalid attemptNumber: "+ attemptNumber);
 			System.exit(0);
 		    }
                 }
 		else{//in other (non-Windows) cases, where it is compiled from scratch, we should be able to run this directly
 		    if(attemptNumber==1) command = System.getProperty("RMG.workingDirectory")+"/bin/SYMMETRY.EXE -final 0.02 " +qmfolder+ "symminput.txt";//12/1/09 gmagoon: switched to use slightly looser criteria of 0.02 rather than 0.01 to handle methylperoxyl radical result from MOPAC
 		    else if (attemptNumber==2) command = System.getProperty("RMG.workingDirectory")+"/bin/SYMMETRY.EXE -final 0.1 " +qmfolder+ "symminput.txt";//looser criteria (0.1 instead of 0.01) to properly identify C2v group in VBURLMBUVWIEMQ-UHFFFAOYAVmult5 (InChI=1/C3H4O2/c1-3(2,4)5/h1-2H2/mult5) MOPAC result; C2 and sigma were identified with default, but it should be C2 and sigma*2
+		    else if (attemptNumber==3) command = System.getProperty("RMG.workingDirectory")+"/bin/SYMMETRY.EXE -primary 0.2 -final 0.1 " +qmfolder+ "symminput.txt";//looser criteria to identify D2d group in XXHDHKZTASMVSX-UHFFFAOYAM (InChI=1/C12H16/c1-5-9-10(6-2)12(8-4)11(9)7-3/h5-12H,1-4H2)
+		    else if (attemptNumber==4){
+			Logger.warning("*****WARNING****: Using last-resort symmetry estimation options; symmetry may be underestimated");
+			command = System.getProperty("RMG.workingDirectory")+"/bin/SYMMETRY.EXE -final 0.0 " +qmfolder+ "symminput.txt";//last resort criteria to avoid crashing (this will likely result in identification of C1 point group)
+		    }
 		    else{
-			System.out.println("Invalid attemptNumber: "+ attemptNumber);
+			Logger.critical("Invalid attemptNumber: "+ attemptNumber);
 			System.exit(0);
 		    }
 		}
@@ -1986,6 +2027,8 @@ public class QMTP implements GeneralGAPP {
                     }
                 }
                 int exitValue = symmProc.waitFor();
+		symmProc.getErrorStream().close();
+		symmProc.getOutputStream().close();
 		br.close();
 		isr.close();
 		is.close();
@@ -1993,21 +2036,21 @@ public class QMTP implements GeneralGAPP {
             catch(Exception e){
                 String err = "Error in running point group calculation process using SYMMETRY \n";
                 err += e.toString();
-                e.printStackTrace();
+                Logger.logStackTrace(e);
                 System.exit(0);
             }
             //check for a recognized point group
             if (result.equals("C1")||result.equals("Cs")||result.equals("Ci")||result.equals("C2")||result.equals("C3")||result.equals("C4")||result.equals("C5")||result.equals("C6")||result.equals("C7")||result.equals("C8")||result.equals("D2")||result.equals("D3")||result.equals("D4")||result.equals("D5")||result.equals("D6")||result.equals("D7")||result.equals("D8")||result.equals("C2v")||result.equals("C3v")||result.equals("C4v")||result.equals("C5v")||result.equals("C6v")||result.equals("C7v")||result.equals("C8v")||result.equals("C2h")||result.equals("C3h")||result.equals("C4h")||result.equals("C5h")||result.equals("C6h")||result.equals("C7h")||result.equals("C8h")||result.equals("D2h")||result.equals("D3h")||result.equals("D4h")||result.equals("D5h")||result.equals("D6h")||result.equals("D7h")||result.equals("D8h")||result.equals("D2d")||result.equals("D3d")||result.equals("D4d")||result.equals("D5d")||result.equals("D6d")||result.equals("D7d")||result.equals("D8d")||result.equals("S4")||result.equals("S6")||result.equals("S8")||result.equals("T")||result.equals("Th")||result.equals("Td")||result.equals("O")||result.equals("Oh")||result.equals("Cinfv")||result.equals("Dinfh")||result.equals("I")||result.equals("Ih")||result.equals("Kh")) pointGroupFound=true;
             else{
-                if(attemptNumber < maxAttemptNumber) System.out.println("Attempt number "+attemptNumber+" did not identify a recognized point group (" +result+"). Will retry with looser point group criteria.");
+                if(attemptNumber < maxAttemptNumber) Logger.info("Attempt number "+attemptNumber+" did not identify a recognized point group (" +result+"). Will retry with looser point group criteria.");
                 else{
-                    System.out.println("Final attempt number "+attemptNumber+" did not identify a recognized point group (" +result+"). Exiting.");
+                    Logger.critical("Final attempt number "+attemptNumber+" did not identify a recognized point group (" +result+"). Exiting.");
                     System.exit(0);
                 }
                 attemptNumber++;
             }
         } 
-        System.out.println("Point group: "+ result);//print result, at least for debugging purposes
+        Logger.info("Point group: "+ result);//print result, at least for debugging purposes
         
         return result;
     }
@@ -2121,14 +2164,14 @@ public class QMTP implements GeneralGAPP {
             catch(Exception e){
                 String err = "Error in reading preexisting Gaussian log file \n";
                 err += e.toString();
-                e.printStackTrace();
+                Logger.logStackTrace(e);
                 System.exit(0);
             }
 	    //if the complete flag is still 0, the process did not complete and is a failure
 	    if (completeFlag==0) failureFlag=1;
             //if the failure flag is still 0, the process should have been successful
             if (failureFlag==0&&InChIMatch==1){
-                System.out.println("Pre-existing successful quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used.");
+                Logger.info("Pre-existing successful quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used.");
                 return true;
             }
             else if (InChIFound==1 && InChIMatch == 0){//InChIs do not match (most likely due to limited name length mirrored in log file (79 characters), but possibly due to a collision)
@@ -2152,46 +2195,46 @@ public class QMTP implements GeneralGAPP {
                         catch(Exception e){
                             String err = "Error in reading preexisting Gaussian gjf file \n";
                             err += e.toString();
-                            e.printStackTrace();
+                            Logger.logStackTrace(e);
                             System.exit(0);
                         }
                         if(inputFileInChI.equals(InChIaug)){
                             if(failureFlag==0){
-                                System.out.println("Pre-existing successful quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 79 characters)");
+                                Logger.info("Pre-existing successful quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 79 characters)");
                                 return true;
                             }
                             else{//otherwise, failureFlag==1
-                                System.out.println("Pre-existing quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 79 characters)");
+                                Logger.info("Pre-existing quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 79 characters)");
                                 return false;
                             }
                         }
                         else{
                             if(inputFileInChI.equals("")){//InChI was not found in input file
-                                System.out.println("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . InChI could not be found in the Gaussian input file. You should manually check that the log file contains the intended species.");
+                                Logger.info("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . InChI could not be found in the Gaussian input file. You should manually check that the log file contains the intended species.");
                                 return true;
                             }
                             else{//InChI was found but doesn't match
-                                System.out.println("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Gaussian input file Augmented InChI = "+inputFileInChI);
+                                Logger.critical("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Gaussian input file Augmented InChI = "+inputFileInChI);
                                 System.exit(0);
                             }
                         }
                     }
                     else{
-                        System.out.println("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . Gaussian input file could not be found to check full InChI. You should manually check that the log file contains the intended species.");
+                        Logger.info("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . Gaussian input file could not be found to check full InChI. You should manually check that the log file contains the intended species.");
                         return true;
                     }
                 }
                 else{
-                    System.out.println("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI);
+                    Logger.critical("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI);
                     System.exit(0);
                 }
             }
             else if (InChIFound==0){
-                System.out.println("An InChI was not found in file: " +name+".log");
+                Logger.critical("An InChI was not found in file: " +name+".log");
                 System.exit(0);
             }
             else if (failureFlag==1){//note these should cover all possible results for this block, and if the file.exists block is entered, it should return from within the block and should not reach the return statement below
-                System.out.println("Pre-existing quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation.");
+                Logger.info("Pre-existing quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation.");
                 return false;
             }
         }
@@ -2232,7 +2275,7 @@ public class QMTP implements GeneralGAPP {
 //         ENERGY IS NOT MEANINGFULL. ZERO POINT ENERGY PRINTED
 //         DOES NOT INCLUDE THE  2 IMAGINARY FREQUENCIES
                     else if (trimLine.endsWith("IMAGINARY FREQUENCIES")){
-                      //  System.out.println("*****Imaginary freqencies found:");
+                      //  Logger.info("*****Imaginary freqencies found:");
                         failureOverrideFlag=1;
                     }
                     else if (trimLine.equals("EXCESS NUMBER OF OPTIMIZATION CYCLES")){//exceeding max cycles error
@@ -2255,13 +2298,13 @@ public class QMTP implements GeneralGAPP {
             catch(Exception e){
                 String err = "Error in reading preexisting MOPAC output file \n";
                 err += e.toString();
-                e.printStackTrace();
+                Logger.logStackTrace(e);
                 System.exit(0);
             }
             if(failureOverrideFlag==1) failureFlag=1; //job will be considered a failure if there are imaginary frequencies or if job terminates to to excess time/cycles
             //if the failure flag is still 0, the process should have been successful
             if (failureFlag==0&&InChIMatch==1){
-                System.out.println("Pre-existing successful MOPAC quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used.");
+                Logger.info("Pre-existing successful MOPAC quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used.");
                 return true;
             }
             else if (InChIFound==1 && InChIMatch == 0){//InChIs do not match (most likely due to limited name length mirrored in log file (240 characters), but possibly due to a collision)
@@ -2286,46 +2329,46 @@ public class QMTP implements GeneralGAPP {
                     catch(Exception e){
                         String err = "Error in reading preexisting MOPAC input file \n";
                         err += e.toString();
-                        e.printStackTrace();
+                        Logger.logStackTrace(e);
                         System.exit(0);
                     }
                     if(inputFileInChI.equals(InChIaug)){
                         if(failureFlag==0){
-                            System.out.println("Pre-existing successful MOPAC quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 240 characters or characters probably deleted from InChI in .out file)");
+                            Logger.info("Pre-existing successful MOPAC quantum result for " + name + " ("+InChIaug+") has been found. This log file will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 240 characters or characters probably deleted from InChI in .out file)");
                             return true;
                         }
                         else{//otherwise, failureFlag==1
-                            System.out.println("Pre-existing MOPAC quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation or Gaussian result (if available) will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 240 characters or characters probably deleted from InChI in .out file)");
+                            Logger.info("Pre-existing MOPAC quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation or Gaussian result (if available) will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than 240 characters or characters probably deleted from InChI in .out file)");
                             return false;
                         }
                     }
                     else{
                         if(inputFileInChI.equals("")){//InChI was not found in input file
-                            System.out.println("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . InChI could not be found in the MOPAC input file. You should manually check that the output file contains the intended species.");
+                            Logger.info("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . InChI could not be found in the MOPAC input file. You should manually check that the output file contains the intended species.");
                             return true;
                         }
                         else{//InChI was found but doesn't match
-                            System.out.println("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " MOPAC input file Augmented InChI = " + inputFileInChI + " Log file Augmented InChI = "+logFileInChI);
+                            Logger.critical("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " MOPAC input file Augmented InChI = " + inputFileInChI + " Log file Augmented InChI = "+logFileInChI);
                             System.exit(0);
                         }
                     }
                 }
                 else{
-                    System.out.println("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . MOPAC input file could not be found to check full InChI. You should manually check that the log file contains the intended species.");
+                    Logger.info("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . MOPAC input file could not be found to check full InChI. You should manually check that the log file contains the intended species.");
                     return true;
                 }
               //  }
 //                else{
-//                    System.out.println("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " MOPAC output file Augmented InChI = "+logFileInChI);
+//                    Logger.critical("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " MOPAC output file Augmented InChI = "+logFileInChI);
 //                    System.exit(0);
 //                }
             }
             else if (InChIFound==0){
-                System.out.println("An InChI was not found in file: " +name+".out");
+                Logger.critical("An InChI was not found in file: " +name+".out");
                 System.exit(0);
             }
             else if (failureFlag==1){//note these should cover all possible results for this block, and if the file.exists block is entered, it should return from within the block and should not reach the return statement below
-                System.out.println("Pre-existing MOPAC quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation or Gaussian result (if available) will be used.");
+                Logger.info("Pre-existing MOPAC quantum result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation or Gaussian result (if available) will be used.");
                 return false;
             }
         }
@@ -2361,16 +2404,16 @@ public class QMTP implements GeneralGAPP {
                     else if (trimLine.endsWith("imaginary frequencies,")){//read the number of imaginary frequencies and make sure it is zero
                         String[] split = trimLine.split("\\s+");
 			if (Integer.parseInt(split[3])>0){
-			    System.out.println("*****Imaginary freqencies found:");
+			    Logger.info("*****Imaginary freqencies found:");
 			    failureOverrideFlag=1;
 			}
                     }
 		    else if (trimLine.contains("             0.0     (fir )")){
 			if (useCanTherm){//zero frequencies are only acceptable when CanTherm is used
-			    System.out.println("*****Warning: zero freqencies found (values lower than 7.7 cm^-1 are rounded to zero in MM4 output); CanTherm should hopefully correct this:");
+			    Logger.info("*****Warning: zero freqencies found (values lower than 7.7 cm^-1 are rounded to zero in MM4 output); CanTherm should hopefully correct this:");
 			}
 			else{
-			    System.out.println("*****Zero freqencies found:");
+			    Logger.info("*****Zero freqencies found:");
 			    failureOverrideFlag=1;
 			}
 		    }
@@ -2388,13 +2431,13 @@ public class QMTP implements GeneralGAPP {
             catch(Exception e){
                 String err = "Error in reading preexisting MM4 output file \n";
                 err += e.toString();
-                e.printStackTrace();
+                Logger.logStackTrace(e);
                 System.exit(0);
             }
             if(failureOverrideFlag==1) failureFlag=1; //job will be considered a failure if there are imaginary frequencies or if job terminates to to excess time/cycles
             //if the failure flag is still 0, the process should have been successful
             if (failureFlag==0&&InChIMatch==1){
-                System.out.println("Pre-existing successful MM4 result for " + name + " ("+InChIaug+") has been found. This log file will be used.");
+                Logger.info("Pre-existing successful MM4 result for " + name + " ("+InChIaug+") has been found. This log file will be used.");
                 return true;
             }
             else if (InChIFound==1 && InChIMatch == 0){//InChIs do not match (most likely due to limited name length mirrored in log file (79 characters), but possibly due to a collision)
@@ -2414,46 +2457,46 @@ public class QMTP implements GeneralGAPP {
                         catch(Exception e){
                             String err = "Error in reading preexisting MM4 .mm4 file \n";
                             err += e.toString();
-                            e.printStackTrace();
+                            Logger.logStackTrace(e);
                             System.exit(0);
                         }
                         if(inputFileInChI.equals(InChIaug)){
                             if(failureFlag==0){
-                                System.out.println("Pre-existing successful MM4 result for " + name + " ("+InChIaug+") has been found. This log file will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than ~60 characters)");
+                                Logger.info("Pre-existing successful MM4 result for " + name + " ("+InChIaug+") has been found. This log file will be used. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than ~60 characters)");
                                 return true;
                             }
                             else{//otherwise, failureFlag==1
-                                System.out.println("Pre-existing MM4 result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than ~60 characters)");
+                                Logger.info("Pre-existing MM4 result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation. *Note that input file was read to confirm lack of InChIKey collision (InChI probably more than ~60 characters)");
                                 return false;
                             }
                         }
                         else{
                             if(inputFileInChI.equals("")){//InChI was not found in input file
-                                System.out.println("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . InChI could not be found in the MM4 input file. You should manually check that the log file contains the intended species.");
+                                Logger.info("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . InChI could not be found in the MM4 input file. You should manually check that the log file contains the intended species.");
                                 return true;
                             }
                             else{//InChI was found but doesn't match
-                                System.out.println("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " MM4 input file Augmented InChI = "+inputFileInChI);
+                                Logger.critical("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " MM4 input file Augmented InChI = "+inputFileInChI);
                                 System.exit(0);
                             }
                         }
                     }
                     else{
-                        System.out.println("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . MM4 input file could not be found to check full InChI. You should manually check that the log file contains the intended species.");
+                        Logger.info("*****Warning: potential InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI + " . MM4 input file could not be found to check full InChI. You should manually check that the log file contains the intended species.");
                         return true;
                     }
                 }
                 else{
-                    System.out.println("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI);
+                    Logger.critical("Congratulations! You appear to have discovered the first recorded instance of an InChIKey collision: InChIKey(augmented) = " + name + " RMG Augmented InChI = "+ InChIaug + " Log file Augmented InChI = "+logFileInChI);
                     System.exit(0);
                 }
             }
             else if (InChIFound==0){
-                System.out.println("An InChI was not found in file: " +name+".mm4out");
+                Logger.critical("An InChI was not found in file: " +name+".mm4out");
                 System.exit(0);
             }
             else if (failureFlag==1){//note these should cover all possible results for this block, and if the file.exists block is entered, it should return from within the block and should not reach the return statement below
-                System.out.println("Pre-existing MM4 result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation.");
+                Logger.info("Pre-existing MM4 result for " + name + " ("+InChIaug+") has been found, but the result was apparently unsuccessful. The file will be overwritten with a new calculation.");
                 return false;
             }
         }
@@ -2582,9 +2625,10 @@ public class QMTP implements GeneralGAPP {
 //            int exitValue = cclibProc.waitFor();
 //        }
 //        catch (Exception e) {
+//				Logger.logStackTrace(e);
 //            String err = "Error in running ccLib Python process \n";
 //            err += e.toString();
-//            e.printStackTrace();
+//            Logger.critical(err);
 //            System.exit(0);
 //        } 
 //       
@@ -2721,14 +2765,17 @@ public class QMTP implements GeneralGAPP {
                 //do nothing (there shouldn't be any more information, but this is included to get all the output)
             }
             int exitValue = cclibProc.waitFor();
+	    cclibProc.getErrorStream().close();
+	    cclibProc.getOutputStream().close();
 	    br.close();
 	    isr.close();
 	    is.close();
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
             String err = "Error in running ccLib Python process \n";
             err += e.toString();
-            e.printStackTrace();
+            Logger.critical(err);
             System.exit(0);
         }
 	//package up the result

@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -79,8 +79,10 @@ public class GUIWindow extends JFrame {
 
 		// Construct the Help drop-down menu
 		JMenuItem aboutItem = helpMenu.add("About RMG");
+                JMenuItem onlineManual = helpMenu.add("Online Manual");
 		aboutItem.addActionListener(new MenuListener("Help"));
 		aboutItem.setAccelerator(KeyStroke.getKeyStroke('H',CTRL_DOWN_MASK));
+                onlineManual.addActionListener(new MenuListener("Manual"));
 		
 		menuBar.add(fileMenu);			// Add the File menu
         menuBar.add(runMenu);           // Add the Run menu
@@ -111,12 +113,17 @@ public class GUIWindow extends JFrame {
             }
 			else if (event.getActionCommand().equals("About RMG")) {
 				JOptionPane.showMessageDialog(theApp, 
-						"RMG v3.2\n\nCopyright (c) 2002-2010.\n" +
+						"RMG v3.3\n\nCopyright (c) 2002-2011.\n" +
 						"Prof. William H. Green and the RMG Team\n" +
 						"http://github.com/GreenGroup/RMG-Java\n"+
 						"rmg_dev@mit.edu",
 						"About RMG", JOptionPane.INFORMATION_MESSAGE);
 			}
+                        else if (event.getActionCommand().equals("Online Manual")) {
+                            JOptionPane.showMessageDialog(theApp,
+						"http://rmg.sourceforge.net/documentation/index.html",
+						"Link to the online RMG documentation", JOptionPane.INFORMATION_MESSAGE);
+                        }
 		}
 		
 		String selection;

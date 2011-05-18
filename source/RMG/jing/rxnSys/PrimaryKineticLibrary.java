@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -93,7 +93,7 @@ public class PrimaryKineticLibrary {
     public void read(String p_directoryName, String p_name) throws IOException {
         try {
         	if (!p_directoryName.endsWith("/")) p_directoryName = p_directoryName + "/";
-			System.out.println("Reading Primary Kinetic Library from: "+p_directoryName);
+			Logger.info("Reading Primary Kinetic Library from: "+p_directoryName);
         	
             String speciesFile = p_directoryName + "species.txt";
             String reactionFile = p_directoryName + "reactions.txt";
@@ -101,11 +101,12 @@ public class PrimaryKineticLibrary {
             
             SeedMechanism sm = new SeedMechanism();
         	speciesSet.putAll(sm.readSpecies(speciesFile,p_name,"Primary Kinetic Library: "));
-        	reactionSet.addAll(sm.readReactions(reactionFile,p_name,speciesSet,"Primary Kinetic Library: ",true));
-        	reactionSet.addAll(sm.readPdepReactions(pdepreactionFile,p_name,speciesSet,"Primary Kinetic Library: ",true));
+        	reactionSet.addAll(sm.readReactions(reactionFile,p_name,speciesSet,"Primary Kinetic Library: "));
+        	reactionSet.addAll(sm.readPdepReactions(pdepreactionFile,p_name,speciesSet,"Primary Kinetic Library: "));
         	return;
         }
         catch (Exception e) {
+			Logger.logStackTrace(e);
         	throw new IOException("Can't read primary kinetic library.\n" + e.getMessage());
         }
     }

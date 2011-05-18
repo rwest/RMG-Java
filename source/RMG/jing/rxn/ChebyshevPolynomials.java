@@ -2,7 +2,7 @@
 //
 //	RMG - Reaction Mechanism Generator
 //
-//	Copyright (c) 2002-2009 Prof. William H. Green (whgreen@mit.edu) and the
+//	Copyright (c) 2002-2011 Prof. William H. Green (whgreen@mit.edu) and the
 //	RMG Team (rmg_dev@mit.edu)
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a
@@ -211,7 +211,7 @@ public class ChebyshevPolynomials implements PDepKinetics {
         for (int i = 0; i < NT; i++) {
         	result += "CHEB / ";
         	for (int j = 0; j < NP; j++) {
-        		result += String.format("%1.7e",alpha[i][j]) + " ";
+        		result += String.format("% 1.7e",alpha[i][j]) + " ";
         	}
         	result += "/\n";
         }
