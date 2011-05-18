@@ -207,8 +207,10 @@ public class Reaction {
          * for the beta_scission family (reverse of R_Addition_Multiplebond) using the correlation of Tsentalovich et al.
          *
          */
-
-        if (!getKineticsSource(0).startsWith("Seed Mechanism")){
+		/* // Reactions do not have a Template any more (only TemplateReactions) so the following code is broken.
+		   // It does nothing anyway, so is being commented out.
+		 
+        if (!isFromPrimaryKineticLibrary() ){
 
             if (ReactionModelGenerator.getUseSolvation()) {
 
@@ -234,10 +236,10 @@ public class Reaction {
                 rad1 = rxt1.isRadical();
                 rad2 = rxt2.isRadical();
 
-                /* Amrit Jalan, November 30, 2010
-                 We are restricting the use of Snelgrove's correlation to reactions of the type XH + Y_rad_birad only i.e.
-                 only for H-Abstraction from a closed shell species.
-                 */
+                // Amrit Jalan, November 30, 2010
+                // We are restricting the use of Snelgrove's correlation to reactions of the type XH + Y_rad_birad only i.e.
+                // only for H-Abstraction from a closed shell species.
+				
 
                 // If rxt1 is a radical then we use the Abraham A parameter of rxt2
                 if (rad1 && !rad2){
@@ -258,10 +260,10 @@ public class Reaction {
                 setKineticsComments(getComments() + "\t"  + "Solvent factor = " + solv_correction + "\t" + "rate=" + rate,0);
                 }                
             }
-
 		}
     }
-
+		 */
+		
     /* Diffusion limits added by AJ on July 12, 2010
      * Requires correction in the forward direction only, reverse reaction corrects itself
      * If ReactionModelGenerator.useDiffusion is true (solvation is on)
