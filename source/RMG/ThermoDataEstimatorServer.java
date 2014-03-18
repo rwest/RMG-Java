@@ -96,15 +96,13 @@ public class ThermoDataEstimatorServer {
 	            inFromClient.mark(4096); // so you can reset up to 4096 characters back.
 	            PrintWriter outToClient = new PrintWriter(connected.getOutputStream(), true);
 	            
-	            outToClient.println("Testing the print to client.");
-	            
 	            LinkedHashMap speciesFromInputFile = new LinkedHashMap();
 	            Map<ChemGraph, String> mappedChemGraphsToNames = null;
-
+	            
 	            mappedChemGraphsToNames = readChemGraphsFromFile(
 	                        speciesFromInputFile, inFromClient);
 
-	            generateTDProperties(mappedChemGraphsToNames, outToClient);	            
+	            generateTDProperties(mappedChemGraphsToNames, outToClient);
 
                 connected.close();
                 System.out.println("SOCKET CLOSED");
@@ -291,6 +289,9 @@ public class ThermoDataEstimatorServer {
                             speciesFromInputFile, cg, "");
             chemgraphNamesMap.put(cg, name);
             line = ChemParser.readMeaningfulLine(reader, true);
+            if (line.trim().toUpperCase().equals("END")) {
+                line = null; // end loop
+            };
         }
         return chemgraphNamesMap;
     }

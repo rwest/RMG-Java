@@ -17,6 +17,7 @@ C2H4
 1 C 0 {2,D}
 2 C 0 {1,D}
 
+END
 """
 
 print "SENDING REQUEST"
