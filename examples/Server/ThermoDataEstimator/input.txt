@@ -1,0 +1,21 @@
+Database: RMG_database
+
+//thermo strategy? BensonOnly/QMforCyclics/Hybrid
+BensonOnly
+//QM method: both/gaussian03/mopac/mm4/mm4hr 
+both
+//maxradnumforQM?
+0
+//CheckConnectivity? off/check/confirm
+check
+
+
+END
+
+PrimaryThermoLibrary:
+Name: RMG-minimal
+Location: primaryThermoLibrary
+END
+
+CH4
+1 C 0
